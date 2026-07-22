@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Selaris — Kasir & Pembukuan UMKM</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --bg:#f6f1ea; --card:#ffffff; --brown:#5b3a29; --brown2:#7a5138; --accent:#c8935f;
+  --green:#2e7d4f; --red:#c0392b; --text:#2d2419; --muted:#8a7a6a; --line:#e8ddd0;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); padding-left:64px; padding-bottom:14px}
+header{background:var(--brown); color:#fff; padding:10px 16px; position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center}
+header h1{font-size:16px; font-weight:700; letter-spacing:.5px}
+.brand{display:flex; align-items:center; gap:10px; cursor:pointer}
+.brand img{height:38px; width:auto; display:block; border-radius:8px; background:#fff}
+.logoInit{width:38px; height:38px; border-radius:10px; background:#F6F0E7; color:var(--brown); font-weight:800; font-size:20px; display:flex; align-items:center; justify-content:center}
+.page{display:none; padding:14px; max-width:640px; margin:0 auto}
+.page.aktif{display:block}
+.card{background:var(--card); border-radius:14px; padding:14px; margin-bottom:12px; box-shadow:0 1px 4px rgba(91,58,41,.08)}
+h2{font-size:15px; color:var(--brown); margin-bottom:10px}
+label{font-size:12px; color:var(--muted); display:block; margin:8px 0 3px}
+input,select,textarea{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px; font-size:15px; background:#fff; color:var(--text)}
+input:focus,select:focus{outline:2px solid var(--accent)}
+button{border:none; border-radius:10px; padding:11px 14px; font-size:14px; font-weight:600; cursor:pointer}
+.btn-utama{background:var(--brown); color:#fff; width:100%; margin-top:12px}
+.btn-hijau{background:var(--green); color:#fff}
+.btn-merah{background:transparent; color:var(--red); padding:6px 10px; font-size:13px}
+.btn-kecil{padding:6px 12px; font-size:13px; background:var(--accent); color:#fff}
+.btn-abu{background:#eee3d5; color:var(--brown)}
+.metode-grid{display:flex; gap:8px; margin-top:4px}
+.metode{flex:1; background:#eee3d5; color:var(--brown); font-size:13px; padding:10px 4px}
+.metode.aktif{background:var(--brown); color:#fff}
+nav{position:fixed; top:0; left:0; bottom:0; width:64px; background:#fff; border-right:1px solid var(--line); display:flex; flex-direction:column; z-index:30; padding-top:8px; overflow-y:auto}
+nav button{background:none; color:var(--muted); font-size:10px; padding:10px 2px; border-radius:0; display:flex; flex-direction:column; align-items:center; gap:3px; border-left:3px solid transparent; width:100%}
+nav button.aktif{color:var(--brown); background:#f6f0e7; border-left:3px solid var(--brown)}
+nav button span.ikon{font-size:21px}
+.baris{display:flex; gap:8px}
+.baris>*{flex:1}
+.item{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); gap:8px}
+.item:last-child{border-bottom:none}
+.item .info{flex:1; min-width:0}
+.item .nama{font-weight:600; font-size:14px}
+.item .sub{font-size:12px; color:var(--muted)}
+.qty-ctl{display:flex; align-items:center; gap:8px}
+.qty-ctl button{width:34px; height:34px; border-radius:50%; background:var(--brown); color:#fff; font-size:18px; padding:0; line-height:1}
+.qty-ctl .angka{min-width:24px; text-align:center; font-weight:700; font-size:16px}
+.total-bar{display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:700; padding-top:10px; border-top:2px solid var(--line); margin-top:6px}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px}
+.stat{background:var(--card); border-radius:14px; padding:12px; box-shadow:0 1px 4px rgba(91,58,41,.08)}
+.stat .lbl{font-size:11px; color:var(--muted)}
+.stat .nilai{font-size:17px; font-weight:800; color:var(--brown); margin-top:3px; word-break:break-word}
+.stat .nilai.hijau{color:var(--green)}
+.stat .nilai.merah{color:var(--red)}
+.badge{font-size:11px; padding:2px 8px; border-radius:20px; background:#f0e6d8; color:var(--brown2)}
+.badge.habis{background:#fde3df; color:var(--red)}
+.kosong{text-align:center; color:var(--muted); font-size:13px; padding:18px 0}
+.riwayat-hdr{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
+.toast{position:fixed; bottom:24px; left:calc(50% + 32px); transform:translateX(-50%); background:var(--brown); color:#fff; padding:10px 18px; border-radius:24px; font-size:13px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:99; white-space:nowrap}
+.toast.tampil{opacity:1}
+.aksi-baris{display:flex; gap:8px; margin-top:12px}
+.aksi-baris button{flex:1}
+small.ket{color:var(--muted); font-size:11px; display:block; margin-top:6px}
+#onboard{position:fixed; inset:0; background:var(--bg); z-index:50; display:none; align-items:center; justify-content:center; padding:20px}
+#onboard.tampil{display:flex}
+.onboard-card{background:#fff; border-radius:18px; padding:26px 22px; max-width:360px; width:100%; box-shadow:0 4px 20px rgba(91,58,41,.15); text-align:center}
+.onboard-card .mark{width:56px; height:56px; border-radius:16px; background:var(--brown); color:#fff; font-size:28px; font-weight:800; display:flex; align-items:center; justify-content:center; margin:0 auto 14px}
+.onboard-card h2{font-size:19px; margin-bottom:6px}
+.onboard-card p{font-size:13px; color:var(--muted); margin-bottom:14px; line-height:1.5}
+.onboard-card input{text-align:center; font-size:16px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand" onclick="klikLogo()" title="Ketuk untuk ganti logo">
+    <span id="logoWadah"></span>
+    <h1 id="hdrNama" onclick="event.stopPropagation();gantiNama()">Usaha Kamu</h1>
+  </div>
+  <div class="tgl" id="hdrTgl" style="font-size:12px; opacity:.85"></div>
+  <input type="file" id="fileLogo" accept="image/*" style="display:none" onchange="gantiLogo(this)">
+</header>
+
+<div id="onboard">
+  <div class="onboard-card" id="onboardStep1">
+    <div class="mark">S</div>
+    <h2>Selamat datang di Selaris 👋</h2>
+    <p>Kasir + pembukuan simpel buat usahamu. Sebelum mulai, siapa nama usahamu?</p>
+    <input id="onboardNama" placeholder="cth: Dapur Bunda, Kopi Selasar" maxlength="30">
+    <button class="btn-utama" onclick="mulaiSelaris()">Lanjut 🚀</button>
+    <small class="ket">Logo bisa dipasang nanti — ketuk logo di pojok kiri atas aplikasi.</small>
+  </div>
+  <div class="onboard-card" id="onboardStep2" style="display:none">
+    <div class="mark">☁️</div>
+    <h2>Amankan Datamu</h2>
+    <p>Sambungkan Google Drive kamu sekarang — data otomatis ke-backup, gak hilang kalau ganti HP atau browser.</p>
+    <button class="btn-utama" onclick="hubungkanDriveOnboard()">🔗 Hubungkan Google Drive</button>
+    <button class="btn-abu" style="width:100%; margin-top:8px" onclick="lewatiOnboardDrive()">Lewati dulu</button>
+    <small class="ket">Bisa disambungkan kapan saja lewat tab Laporan.</small>
+  </div>
+</div>
+
+<div class="page aktif" id="pgKasir">
+  <div class="stat-grid">
+    <div class="stat"><div class="lbl">Omzet Hari Ini</div><div class="nilai hijau" id="dashOmzet">Rp0</div></div>
+    <div class="stat"><div class="lbl">Laba Kotor Hari Ini</div><div class="nilai" id="dashLaba">Rp0</div></div>
+  </div>
+  <div class="card">
+    <h2>Pesanan Baru</h2>
+    <div id="daftarJual"></div>
+    <div id="rincianBayar"></div>
+    <div class="total-bar"><span>Total</span><span id="totalJual">Rp0</span></div>
+    <label>Tanggal penjualan (bisa tanggal lampau)</label>
+    <input id="tglJual" type="date" oninput="cekTglJual()">
+    <small class="ket" id="infoTglJual"></small>
+    <label>Pembayaran</label>
+    <div class="metode-grid">
+      <button class="metode aktif" data-m="Cash" onclick="pilihMetode(this)">💵 Cash</button>
+      <button class="metode" data-m="QRIS" onclick="pilihMetode(this)">📱 QRIS</button>
+      <button class="metode" data-m="Transfer" onclick="pilihMetode(this)">🏦 Transfer</button>
+      <button class="metode" data-m="Utang" onclick="pilihMetode(this)">🧾 Utang</button>
+    </div>
+    <label>Pelanggan (opsional — wajib untuk Utang)</label>
+    <select id="pelangganJual"><option value="">— Umum —</option></select>
+    <label>Catatan (opsional)</label>
+    <input id="catatanJual" placeholder="cth: pesanan Bu Rina, COD">
+    <button class="btn-utama" onclick="simpanTransaksi()">💾 Simpan Penjualan</button>
+  </div>
+  <div class="card">
+    <div class="riwayat-hdr"><h2>Penjualan Hari Ini</h2><span class="badge" id="jmlTrxHariIni"></span></div>
+    <div id="riwayatHariIni"></div>
+  </div>
+</div>
+
+<div class="page" id="pgProduk">
+  <div class="metode-grid" style="margin-bottom:12px">
+    <button class="metode aktif" id="tabSubProduk" onclick="showProdukSub('produk')">🧺 Produk</button>
+    <button class="metode" id="tabSubBahan" onclick="showProdukSub('bahan')">📦 Bahan Baku</button>
+  </div>
+  <div id="subProduk">
+  <div class="card">
+    <h2 id="judulFormProduk">Tambah Produk</h2>
+    <input type="hidden" id="prodEditId">
+    <label>1️⃣ Nama produk</label>
+    <input id="prodNama" placeholder="cth: Es Kopi Susu / Keripik Pisang">
+    <label>2️⃣ Modal produk — hitung dulu biar untung gak salah</label>
+    <div class="metode-grid">
+      <button class="metode" id="modeHpp" onclick="setModeModal('hpp')">🧮 Hitung HPP dari bahan</button>
+      <button class="metode aktif" id="modeLangsung" onclick="setModeModal('langsung')">💰 Modal langsung</button>
+    </div>
+    <div id="bagianHpp" style="display:none">
+      <div id="daftarKomponenForm"></div>
+      <div class="baris">
+        <div style="flex:2"><label>Nama komponen</label><input id="fkNama" placeholder="cth: Susu UHT, Cup, Gas"></div>
+        <div style="flex:1"><label>Satuan</label><input id="fkSatuan" placeholder="ml / gr / pcs"></div>
+      </div>
+      <div class="baris">
+        <div><label>Harga kemasan</label><input id="fkHarga" type="number" inputmode="numeric" placeholder="17000"></div>
+        <div><label>Isi kemasan</label><input id="fkIsi" type="number" inputmode="decimal" placeholder="1000"></div>
+        <div><label>Pakai /pcs</label><input id="fkPakai" type="number" inputmode="decimal" placeholder="100"></div>
+      </div>
+      <button class="btn-abu" style="width:100%; margin-top:8px" onclick="tambahKomponenForm()">+ Tambah Komponen</button>
+      <div class="total-bar" style="border-top:none; margin-top:2px; padding-top:4px; font-weight:400; font-size:13px"><span>Bahan</span><span id="hppBahan">Rp0</span></div>
+      <div class="total-bar" style="border-top:none; margin-top:0; padding-top:0; font-weight:400; font-size:13px"><span>+ Overhead /pcs</span><span id="hppOvh">Rp0</span></div>
+      <div class="total-bar"><span>HPP /pcs → jadi modal</span><span id="hppForm">Rp0</span></div>
+    </div>
+    <div id="bagianLangsung">
+      <label>Modal per pcs (Rp) — untuk produk beli jadi</label>
+      <input id="prodModal" type="number" inputmode="numeric" placeholder="8000" oninput="hitungMarginForm()">
+    </div>
+    <label>3️⃣ Harga jual (Rp)</label>
+    <div class="aksi-baris" style="margin:0 0 6px">
+      <button class="btn-kecil" onclick="saranHarga(0.3)">Untung 30%</button>
+      <button class="btn-kecil" onclick="saranHarga(0.5)">Untung 50%</button>
+      <button class="btn-kecil" onclick="saranHarga(0.7)">Untung 70%</button>
+    </div>
+    <input id="prodHarga" type="number" inputmode="numeric" placeholder="15000" oninput="hitungMarginForm()">
+    <small class="ket" id="marginForm"></small>
+    <label>4️⃣ Stok awal (pcs)</label>
+    <input id="prodStok" type="number" inputmode="numeric" placeholder="20">
+    <button class="btn-utama" onclick="simpanProduk()">Simpan Produk ✔</button>
+    <button class="btn-abu" style="width:100%; margin-top:8px; display:none" id="btnBatalEdit" onclick="batalEditProduk()">Batal Edit</button>
+  </div>
+  <div class="card">
+    <h2>Daftar Produk</h2>
+    <div id="daftarProduk"></div>
+  </div>
+  </div>
+  <div id="subBahan" style="display:none">
+  <div class="card">
+    <h2>Tambah Bahan Baku</h2>
+    <label>Nama bahan</label>
+    <input id="bhnNama" placeholder="cth: Tepung, Susu UHT, Cup + tutup">
+    <div class="baris">
+      <div><label>Jumlah</label><input id="bhnJumlah" type="number" inputmode="decimal" placeholder="10"></div>
+      <div><label>Satuan</label><input id="bhnSatuan" placeholder="kg / liter / pcs"></div>
+    </div>
+    <label>Stok minimum (peringatan)</label>
+    <input id="bhnMin" type="number" inputmode="decimal" placeholder="2">
+    <button class="btn-utama" onclick="simpanBahan()">Simpan Bahan</button>
+  </div>
+  <div class="card">
+    <h2>Stok Bahan Baku</h2>
+    <div id="daftarBahan"></div>
+  </div>
+  </div>
+</div>
+
+<div class="page" id="pgKeuangan">
+  <div class="metode-grid" style="margin-bottom:12px">
+    <button class="metode aktif" id="tabSubKeluar" onclick="showKeuanganSub('keluar')">💸 Pengeluaran</button>
+    <button class="metode" id="tabSubOverhead" onclick="showKeuanganSub('overhead')">🏭 Overhead & Harga</button>
+  </div>
+  <div id="subKeluar">
+  <div class="card">
+    <h2>Catat Pengeluaran</h2>
+    <label>Tanggal</label>
+    <input id="klrTgl" type="date">
+    <label>Kategori</label>
+    <select id="klrKategori">
+      <option>Bahan baku</option><option>Kemasan</option><option>Gas / listrik</option>
+      <option>Transport / ongkir</option><option>Promosi</option><option>Lainnya</option>
+    </select>
+    <label>Jumlah (Rp)</label>
+    <input id="klrJumlah" type="number" inputmode="numeric" placeholder="50000">
+    <label>Keterangan</label>
+    <input id="klrKet" placeholder="cth: beli bahan buat stok minggu ini">
+    <button class="btn-utama" onclick="simpanPengeluaran()">Simpan Pengeluaran</button>
+    <small class="ket">Tanggalnya bebas — bisa bulan atau tahun lalu buat mencatat pengeluaran lama. Lihat semuanya di tab Laporan sesuai periode.</small>
+  </div>
+  <div class="card">
+    <h2>Pengeluaran Bulan Ini</h2>
+    <div id="daftarKeluar"></div>
+  </div>
+  </div>
+  <div id="subOverhead" style="display:none">
+  <div class="card">
+    <h2>🏭 Biaya Overhead Bulanan</h2>
+    <div id="daftarOverhead"></div>
+    <div class="baris">
+      <div><label>Nama biaya</label><input id="ovhNama" placeholder="cth: Listrik, Gas, Sewa"></div>
+      <div><label>Biaya / bulan (Rp)</label><input id="ovhBiaya" type="number" inputmode="numeric" placeholder="150000"></div>
+    </div>
+    <button class="btn-utama" onclick="tambahOverhead()">+ Tambah Overhead</button>
+    <label>Estimasi produksi per bulan (pcs)</label>
+    <input id="ovhProduksi" type="number" inputmode="numeric" placeholder="600" oninput="setelProduksi(this.value)">
+    <div class="total-bar"><span>Overhead per pcs</span><span id="ovhPerPcs">Rp0</span></div>
+    <small class="ket">Overhead per pcs otomatis ditambahkan ke HPP produk yang dihitung dari bahan. Setelah mengubah overhead, ketuk tombol di bawah.</small>
+    <button class="btn-hijau" style="width:100%; margin-top:10px" onclick="terapkanOverhead()">🔄 Hitung Ulang Modal Semua Produk</button>
+  </div>
+  <div class="card">
+    <h2>⚙️ Setelan Penjualan</h2>
+    <label>Komisi online food (%) — GoFood/GrabFood/ShopeeFood</label>
+    <input id="setKomisi" type="number" inputmode="numeric" placeholder="20" oninput="setelSetelan()">
+    <label>Pajak penjualan (%) — isi 0 jika tidak pakai</label>
+    <input id="setPajak" type="number" inputmode="numeric" placeholder="0" oninput="setelSetelan()">
+    <small class="ket" id="contohSetelan"></small>
+  </div>
+  </div>
+</div>
+
+<div class="page" id="pgPelanggan">
+  <div class="card">
+    <h2>Tambah Pelanggan</h2>
+    <label>Nama pelanggan</label>
+    <input id="pelNama" placeholder="cth: Bu Rina">
+    <label>No. WhatsApp (opsional)</label>
+    <input id="pelWa" inputmode="tel" placeholder="08xxxxxxxxxx">
+    <label>Catatan (opsional)</label>
+    <input id="pelCatatan" placeholder="cth: langganan tiap Jumat">
+    <button class="btn-utama" onclick="simpanPelanggan()">Simpan Pelanggan</button>
+  </div>
+  <div class="card">
+    <div class="riwayat-hdr"><h2>Daftar Pelanggan</h2><span class="badge" id="totalPiutang"></span></div>
+    <div id="daftarPelanggan"></div>
+    <small class="ket">🧾 Kasbon dari kasir otomatis tercatat di sini. Ketuk 💬 buat nagih via WA.</small>
+  </div>
+</div>
+
+<div class="page" id="pgLaporan">
+  <div class="card">
+    <h2>Periode Laporan</h2>
+    <div class="baris">
+      <div><label>Dari</label><input id="lapDari" type="date"></div>
+      <div><label>Sampai</label><input id="lapSampai" type="date"></div>
+    </div>
+    <div class="aksi-baris">
+      <button class="btn-kecil" onclick="setPeriode('hari')">Hari ini</button>
+      <button class="btn-kecil" onclick="setPeriode('minggu')">7 hari</button>
+      <button class="btn-kecil" onclick="setPeriode('bulan')">Bulan ini</button>
+      <button class="btn-kecil" onclick="setPeriode('tahun')">Tahun ini</button>
+    </div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat"><div class="lbl">Omzet</div><div class="nilai" id="lapOmzet">Rp0</div></div>
+    <div class="stat"><div class="lbl">Terjual</div><div class="nilai" id="lapBotol">0</div></div>
+    <div class="stat"><div class="lbl">Laba kotor</div><div class="nilai hijau" id="lapLabaKotor">Rp0</div></div>
+    <div class="stat"><div class="lbl">Pengeluaran</div><div class="nilai merah" id="lapKeluar">Rp0</div></div>
+    <div class="stat" style="grid-column:1/-1"><div class="lbl">Laba bersih (laba kotor − pengeluaran)</div><div class="nilai" id="lapLabaBersih">Rp0</div></div>
+  </div>
+  <div class="card">
+    <h2>Omzet per Metode Bayar</h2>
+    <div id="lapMetode"></div>
+  </div>
+  <div class="card">
+    <h2>Produk Terlaris</h2>
+    <div id="lapTerlaris"></div>
+  </div>
+  <div class="card">
+    <h2>Riwayat Transaksi</h2>
+    <div id="lapRiwayat"></div>
+  </div>
+  <div class="card">
+    <h2>Data & Backup</h2>
+    <div class="aksi-baris">
+      <button class="btn-hijau" onclick="eksporCSV()">⬇ Ekspor CSV</button>
+      <button class="btn-abu" onclick="eksporBackup()">💾 Backup</button>
+      <button class="btn-abu" onclick="document.getElementById('fileRestore').click()">📂 Restore</button>
+    </div>
+    <button class="btn-utama" onclick="bagikanBackup()">📤 Bagikan Backup (ke Drive / WA)</button>
+    <button class="btn-abu" style="width:100%; margin-top:8px" onclick="document.getElementById('fileMenu').click()">📥 Impor Menu (tambah produk dari file)</button>
+    <input type="file" id="fileMenu" accept=".json" style="display:none" onchange="imporMenu(this)">
+    <input type="file" id="fileRestore" accept=".json" style="display:none" onchange="imporBackup(this)">
+    <small class="ket">Data tersimpan otomatis di browser perangkat ini. Backup manual pakai tombol di atas — atau aktifkan auto-backup di bawah.</small>
+  </div>
+  <div class="card">
+    <h2>☁️ Backup Otomatis — Google Drive</h2>
+    <small class="ket" id="cloudStatus"></small>
+    <button class="btn-utama" style="margin-top:10px" onclick="hubungkanDrive()">🔗 Hubungkan Google Drive</button>
+    <div class="aksi-baris">
+      <button class="btn-hijau" onclick="backupKeDrive()">Backup Sekarang</button>
+      <button class="btn-abu" onclick="pulihkanDariDrive()">Ambil dari Drive</button>
+    </div>
+    <small class="ket">Data kamu tersimpan di folder khusus aplikasi di Google Drive milikmu sendiri — bukan di server Selaris. Ganti HP? Login Google yang sama, ketuk "Ambil dari Drive".</small>
+    <small class="ket">Selaris v2.0 · Bantuan & info update: IG @ceritakopibeny · TikTok @famzcoffee</small>
+  </div>
+</div>
+
+<nav>
+  <button class="aktif" onclick="pindah('Kasir',this)"><span class="ikon">🛒</span>Kasir</button>
+  <button onclick="pindah('Produk',this)"><span class="ikon">🧺</span>Produk</button>
+  <button onclick="pindah('Keuangan',this)"><span class="ikon">💰</span>Keuangan</button>
+  <button onclick="pindah('Pelanggan',this)"><span class="ikon">👥</span>Pelanggan</button>
+  <button onclick="pindah('Laporan',this)"><span class="ikon">📊</span>Laporan</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Penyimpanan =====
+const KEY='selarisData_v1';
+let db = muat();
+function muat(){
+  try{ const d=JSON.parse(localStorage.getItem(KEY)); if(d&&d.produk){ d.pelanggan=d.pelanggan||[]; d.overhead=d.overhead||{items:[],produksiPerBulan:0}; d.setelan=d.setelan||{komisi:20,pajak:0}; return d; } }catch(e){}
+  return {produk:[], transaksi:[], bahan:[], pengeluaran:[], logo:null, namaUsaha:null, pelanggan:[], overhead:{items:[],produksiPerBulan:0}, setelan:{komisi:20,pajak:0}, driveTerhubung:false};
+}
+function simpan(tanpaCloud){ localStorage.setItem(KEY, JSON.stringify(db)); if(tanpaCloud!==true) jadwalkanBackupDrive(); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+// ===== Util =====
+const rp = n => 'Rp'+Math.round(n||0).toLocaleString('id-ID');
+const hariIni = () => new Date().toISOString().slice(0,10);
+const slug = s => (s||'usaha').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'usaha';
+const waLink = w => { let d=(w||'').replace(/\D/g,''); if(d.startsWith('0')) d='62'+d.slice(1); return 'https://wa.me/'+d; };
+function namaPel(id){ const p=db.pelanggan.find(x=>x.id===id); return p?p.nama:'?'; }
+function tglCantik(iso){ const d=new Date(iso+'T00:00'); return d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); }
+function jamDari(ts){ return new Date(ts).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('tampil'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('tampil'),2200); }
+function esc(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ===== Identitas usaha (white-label) =====
+function tampilkanNama(){ document.getElementById('hdrNama').textContent = db.namaUsaha || 'Usaha Kamu'; }
+function gantiNama(){
+  const n=prompt('Nama usaha kamu:', db.namaUsaha||'');
+  if(n && n.trim()){ db.namaUsaha=n.trim().slice(0,30); simpan(); tampilkanNama(); tampilkanLogo(); toast('Nama usaha diganti ✔'); }
+}
+function mulaiSelaris(){
+  const n=document.getElementById('onboardNama').value.trim();
+  if(!n){ toast('Isi dulu nama usahamu ya'); return; }
+  db.namaUsaha=n.slice(0,30); simpan(true);
+  tampilkanNama(); tampilkanLogo();
+  document.getElementById('onboardStep1').style.display='none';
+  document.getElementById('onboardStep2').style.display='block';
+}
+function lewatiOnboardDrive(){ selesaiOnboard(); }
+function selesaiOnboard(){
+  document.getElementById('onboard').classList.remove('tampil');
+  toast('Siap! Tambahkan produk pertamamu 🧺');
+  pindah('Produk', document.querySelectorAll('nav button')[1]);
+}
+function tampilkanLogo(){
+  const w=document.getElementById('logoWadah');
+  if(db.logo){ w.innerHTML='<img src="'+db.logo+'" alt="logo usaha">'; }
+  else{ const h=(db.namaUsaha||'U').trim().charAt(0).toUpperCase(); w.innerHTML='<div class="logoInit">'+esc(h)+'</div>'; }
+}
+function klikLogo(){
+  if(confirm('Ganti logo dengan gambar dari galeri/berkas?')) document.getElementById('fileLogo').click();
+}
+function gantiLogo(inp){
+  const f=inp.files[0]; if(!f) return;
+  const url=URL.createObjectURL(f); const img=new Image();
+  img.onload=()=>{
+    const maks=420, r=Math.min(1, maks/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');
+    c.width=Math.round(img.width*r); c.height=Math.round(img.height*r);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    db.logo=c.toDataURL('image/png'); URL.revokeObjectURL(url);
+    simpan(); tampilkanLogo(); toast('Logo terpasang ✔');
+  };
+  img.onerror=()=>{ toast('File gambar tidak valid'); URL.revokeObjectURL(url); };
+  img.src=url; inp.value='';
+}
+
+// ===== Navigasi =====
+function pindah(nama, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('aktif'));
+  document.getElementById('pg'+nama).classList.add('aktif');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('aktif'));
+  btn.classList.add('aktif');
+  render();
+}
+
+// ===== Kasir =====
+let keranjang = {};
+let metodeJual = 'Cash';
+function pilihMetode(b){
+  metodeJual = b.dataset.m;
+  document.querySelectorAll('.metode').forEach(x=>x.classList.remove('aktif'));
+  b.classList.add('aktif');
+}
+function cekTglJual(){
+  const t=document.getElementById('tglJual').value;
+  document.getElementById('infoTglJual').textContent =
+    (t && t<hariIni()) ? '⚠️ Tanggal lampau — stok TIDAK akan dikurangi (barangnya sudah laku waktu itu).' :
+    (t && t>hariIni()) ? 'ℹ️ Tanggal di masa depan.' : '';
+}
+function ubahQty(id, delta){
+  const p = db.produk.find(x=>x.id===id); if(!p) return;
+  const q = (keranjang[id]||0)+delta;
+  if(q<0) return;
+  const lampauQ=(document.getElementById('tglJual').value||hariIni())<hariIni();
+  if(!lampauQ && q>p.stok){ toast('Stok '+p.nama+' tinggal '+p.stok); return; }
+  if(q===0) delete keranjang[id]; else keranjang[id]=q;
+  renderKasir();
+}
+function renderKasir(){
+  const sel=document.getElementById('pelangganJual'); const vSel=sel.value;
+  sel.innerHTML='<option value="">— Umum —</option>'+db.pelanggan.map(p=>`<option value="${p.id}">${esc(p.nama)}</option>`).join('');
+  sel.value=vSel;
+  const wadah = document.getElementById('daftarJual');
+  if(db.produk.length===0){ wadah.innerHTML='<div class="kosong">Belum ada produk. Hitung HPP & tambah produk dulu di tab Produk 🧺</div>'; }
+  else wadah.innerHTML = db.produk.map(p=>`
+    <div class="item">
+      <div class="info">
+        <div class="nama">${esc(p.nama)}</div>
+        <div class="sub">${rp(p.harga)} · <span class="badge ${p.stok<=0?'habis':''}">stok ${p.stok}</span></div>
+      </div>
+      <div class="qty-ctl">
+        <button onclick="ubahQty('${p.id}',-1)">−</button>
+        <div class="angka">${keranjang[p.id]||0}</div>
+        <button onclick="ubahQty('${p.id}',1)">+</button>
+      </div>
+    </div>`).join('');
+  const subtotal = Object.entries(keranjang).reduce((s,[id,q])=>{ const p=db.produk.find(x=>x.id===id); return s+(p?p.harga*q:0); },0);
+  const pjkK=(db.setelan.pajak>0)? Math.round(subtotal*db.setelan.pajak/100) : 0;
+  document.getElementById('rincianBayar').innerHTML = pjkK>0
+    ? `<div class="item" style="padding:4px 0; border:none"><span class="sub">Subtotal</span><span class="sub">${rp(subtotal)}</span></div><div class="item" style="padding:4px 0; border:none"><span class="sub">Pajak ${db.setelan.pajak}%</span><span class="sub">${rp(pjkK)}</span></div>` : '';
+  document.getElementById('totalJual').textContent = rp(subtotal+pjkK);
+  const trxHariIni = db.transaksi.filter(t=>t.tanggal===hariIni()).sort((a,b)=>b.waktu-a.waktu);
+  document.getElementById('jmlTrxHariIni').textContent = trxHariIni.length+' transaksi · '+rp(trxHariIni.reduce((s,t)=>s+t.total,0));
+  const omzetHariIni = trxHariIni.reduce((s,t)=>s+t.total,0);
+  const modalHariIni = trxHariIni.reduce((s,t)=>s+(t.modal||0),0);
+  const pjkHariIni = trxHariIni.reduce((s,t)=>s+(t.pajak||0),0);
+  document.getElementById('dashOmzet').textContent = rp(omzetHariIni);
+  const labaEl = document.getElementById('dashLaba');
+  const labaHariIni = omzetHariIni-modalHariIni-pjkHariIni;
+  labaEl.textContent = rp(labaHariIni); labaEl.className='nilai '+(labaHariIni>=0?'hijau':'merah');
+  document.getElementById('riwayatHariIni').innerHTML = trxHariIni.length===0
+    ? '<div class="kosong">Belum ada penjualan hari ini.</div>'
+    : trxHariIni.map(t=>`
+      <div class="item">
+        <div class="info">
+          <div class="nama">${rp(t.total)} <span class="badge">${esc(t.metode||'Cash')}</span> <span class="sub">· ${jamDari(t.waktu)}</span></div>
+          <div class="sub">${t.item.map(i=>esc(i.nama)+' ×'+i.qty).join(', ')}${t.pelangganId?' · 👤 '+esc(namaPel(t.pelangganId)):''}${t.catatan?' — '+esc(t.catatan):''}</div>
+        </div>
+        <button class="btn-merah" onclick="hapusTransaksi('${t.id}')">Hapus</button>
+      </div>`).join('');
+}
+function simpanTransaksi(){
+  const entri = Object.entries(keranjang);
+  if(entri.length===0){ toast('Pilih produk dulu'); return; }
+  const tglJ=document.getElementById('tglJual').value||hariIni();
+  const lampau=tglJ<hariIni();
+  const item=[]; let total=0, modal=0;
+  for(const [id,q] of entri){
+    const p=db.produk.find(x=>x.id===id); if(!p) continue;
+    if(!lampau && q>p.stok){ toast('Stok '+p.nama+' kurang'); return; }
+    item.push({produkId:id, nama:p.nama, qty:q, harga:p.harga, modal:p.modal});
+    total+=p.harga*q; modal+=p.modal*q;
+  }
+  const pelId=document.getElementById('pelangganJual').value||null;
+  if(metodeJual==='Utang' && !pelId){ toast('Pilih pelanggan dulu untuk kasbon/utang'); return; }
+  if(!lampau) for(const i of item){ const p=db.produk.find(x=>x.id===i.produkId); p.stok-=i.qty; }
+  const idT=uid();
+  const pjk=(db.setelan.pajak>0)? Math.round(total*db.setelan.pajak/100) : 0;
+  db.transaksi.push({id:idT, tanggal:tglJ, waktu:(lampau? new Date(tglJ+'T12:00:00').getTime() : Date.now()), item, subtotal:total, pajak:pjk, total:total+pjk, modal, metode:metodeJual, pelangganId:pelId, tanpaStok:lampau, catatan:document.getElementById('catatanJual').value.trim()});
+  if(metodeJual==='Utang'){
+    const pl=db.pelanggan.find(x=>x.id===pelId);
+    if(pl) pl.utang.push({id:uid(), trxId:idT, tanggal:hariIni(), waktu:Date.now(), jumlah:total+pjk, ket:'Kasbon belanja', tipe:'utang'});
+  }
+  keranjang={}; document.getElementById('catatanJual').value=''; document.getElementById('pelangganJual').value='';
+  simpan(); render(); cekTglJual();
+  toast(lampau? 'Penjualan '+tglCantik(tglJ)+' tersimpan ✔' : 'Penjualan tersimpan ✔');
+}
+function hapusTransaksi(id){
+  const tKonf=db.transaksi.find(x=>x.id===id);
+  if(!confirm(tKonf&&tKonf.tanpaStok? 'Hapus transaksi ini?' : 'Hapus transaksi ini? Stok produk akan dikembalikan.')) return;
+  const t=db.transaksi.find(x=>x.id===id); if(!t) return;
+  if(!t.tanpaStok) for(const i of t.item){ const p=db.produk.find(x=>x.id===i.produkId); if(p) p.stok+=i.qty; }
+  db.pelanggan.forEach(p=>{ p.utang=p.utang.filter(u=>u.trxId!==id); });
+  db.transaksi = db.transaksi.filter(x=>x.id!==id);
+  simpan(); render(); toast('Transaksi dihapus');
+}
+
+// ===== Sub-tab: Produk / Bahan Baku, Pengeluaran / Overhead =====
+function showProdukSub(tab){
+  document.getElementById('subProduk').style.display = tab==='produk'?'block':'none';
+  document.getElementById('subBahan').style.display = tab==='bahan'?'block':'none';
+  document.getElementById('tabSubProduk').classList.toggle('aktif', tab==='produk');
+  document.getElementById('tabSubBahan').classList.toggle('aktif', tab==='bahan');
+}
+function showKeuanganSub(tab){
+  document.getElementById('subKeluar').style.display = tab==='keluar'?'block':'none';
+  document.getElementById('subOverhead').style.display = tab==='overhead'?'block':'none';
+  document.getElementById('tabSubKeluar').classList.toggle('aktif', tab==='keluar');
+  document.getElementById('tabSubOverhead').classList.toggle('aktif', tab==='overhead');
+}
+
+// ===== Produk (default: modal langsung — HPP jadi opsi lanjutan) =====
+let modeModal='langsung', formKomponen=[];
+function setModeModal(m){
+  modeModal=m;
+  document.getElementById('modeHpp').classList.toggle('aktif', m==='hpp');
+  document.getElementById('modeLangsung').classList.toggle('aktif', m==='langsung');
+  document.getElementById('bagianHpp').style.display = m==='hpp'?'block':'none';
+  document.getElementById('bagianLangsung').style.display = m==='langsung'?'block':'none';
+  hitungMarginForm();
+}
+function totalFormHpp(){ return formKomponen.reduce((s,k)=>s+biayaKomponen(k),0); }
+function modalSekarang(){ return modeModal==='hpp' ? (formKomponen.length ? Math.round(totalFormHpp()+overheadPerPcs()) : 0) : (+document.getElementById('prodModal').value||0); }
+function tambahKomponenForm(){
+  const nama=document.getElementById('fkNama').value.trim();
+  const satuan=document.getElementById('fkSatuan').value.trim()||'pcs';
+  const harga=+document.getElementById('fkHarga').value;
+  const isi=+document.getElementById('fkIsi').value;
+  const pakai=+document.getElementById('fkPakai').value;
+  if(!nama||!harga||!isi||!pakai){ toast('Lengkapi kolom komponen dulu'); return; }
+  formKomponen.push({id:uid(), nama, satuan, harga, isi, pakai});
+  ['fkNama','fkSatuan','fkHarga','fkIsi','fkPakai'].forEach(i=>document.getElementById(i).value='');
+  renderKomponenForm();
+}
+function hapusKomponenForm(id){ formKomponen=formKomponen.filter(k=>k.id!==id); renderKomponenForm(); }
+function renderKomponenForm(){
+  document.getElementById('daftarKomponenForm').innerHTML = formKomponen.length===0
+    ? '<div class="kosong">Masukkan bahan-bahan produkmu satu per satu.<br>Contoh: Susu UHT — harga 17000, isi 1000 ml, pakai 100 ml.</div>'
+    : formKomponen.map(k=>`
+      <div class="item" style="flex-wrap:wrap">
+        <div class="info" style="min-width:100%; display:flex; justify-content:space-between; align-items:center">
+          <input value="${esc(k.nama)}" oninput="ubahKomponenForm('${k.id}','nama',this.value)" style="flex:1; font-weight:600" placeholder="nama komponen">
+          <span style="display:flex; align-items:center; gap:6px; margin-left:8px"><span class="badge" id="bk_${k.id}">${rp(biayaKomponen(k))}</span> <button class="btn-merah" onclick="hapusKomponenForm('${k.id}')">✕</button></span>
+        </div>
+        <div class="baris" style="width:100%">
+          <div><label>Harga beli</label><input type="number" inputmode="numeric" value="${k.harga}" oninput="ubahKomponenForm('${k.id}','harga',this.value)"></div>
+          <div><label>Isi</label><input type="number" inputmode="decimal" value="${k.isi}" oninput="ubahKomponenForm('${k.id}','isi',this.value)"></div>
+          <div><label>Pakai</label><input type="number" inputmode="decimal" value="${k.pakai}" oninput="ubahKomponenForm('${k.id}','pakai',this.value)"></div>
+          <div style="flex:0 0 70px"><label>Satuan</label><input value="${esc(k.satuan||'pcs')}" oninput="ubahKomponenForm('${k.id}','satuan',this.value)"></div>
+        </div>
+      </div>`).join('');
+  perbaruiTotalForm();
+}
+function ubahKomponenForm(id,f,v){
+  const k=formKomponen.find(x=>x.id===id); if(!k) return;
+  if(f==='nama'||f==='satuan'){ k[f]=v; return; }
+  k[f]=+v||0;
+  const b=document.getElementById('bk_'+id); if(b) b.textContent=rp(biayaKomponen(k));
+  perbaruiTotalForm();
+}
+function perbaruiTotalForm(){
+  const b=totalFormHpp(), o=overheadPerPcs();
+  const eb=document.getElementById('hppBahan'); if(eb) eb.textContent=rp(b);
+  const eo=document.getElementById('hppOvh'); if(eo) eo.textContent=rp(o);
+  document.getElementById('hppForm').textContent=rp(Math.round(b+o));
+  hitungMarginForm();
+}
+function hitungMarginForm(){
+  const m=modalSekarang(), h=+document.getElementById('prodHarga').value;
+  const el=document.getElementById('marginForm');
+  if(!m){ el.textContent='Isi modal dulu (langkah 2) — itu kunci untung yang benar.'; return; }
+  if(!h){ el.textContent='Modal '+rp(m)+' — isi harga jual, atau ketuk tombol saran di atas.'; return; }
+  const u=h-m;
+  el.textContent='Modal '+rp(m)+' → untung '+rp(u)+'/pcs ('+Math.round(u/h*100)+'%)'+(u<=0?' ⚠️ RUGI/impas!':'')+' · 🛵 Saran online food: '+rp(hargaOnline(h));
+}
+function saranHarga(p){
+  const m=modalSekarang();
+  if(!m){ toast('Hitung HPP / isi modal dulu (langkah 2)'); return; }
+  document.getElementById('prodHarga').value=Math.ceil((m/(1-p))/500)*500;
+  hitungMarginForm();
+}
+function simpanProduk(){
+  const nama=document.getElementById('prodNama').value.trim();
+  const harga=+document.getElementById('prodHarga').value;
+  const modal=modalSekarang();
+  const stok=+document.getElementById('prodStok').value||0;
+  if(!nama){ toast('Isi nama produk (langkah 1)'); return; }
+  if(!modal){ toast(modeModal==='hpp'?'Hitung HPP dulu — tambah minimal 1 komponen (langkah 2)':'Isi modal dulu (langkah 2)'); return; }
+  if(!harga){ toast('Isi harga jual (langkah 3)'); return; }
+  if(harga<=modal && !confirm('Harga jual ≤ modal — untungmu nol/minus. Tetap simpan?')) return;
+  const resep = modeModal==='hpp' ? formKomponen.map(k=>({...k})) : null;
+  const editId=document.getElementById('prodEditId').value;
+  if(editId){ const p=db.produk.find(x=>x.id===editId); Object.assign(p,{nama,harga,modal,stok,resep}); toast('Produk diubah ✔'); }
+  else { db.produk.push({id:uid(), nama, harga, modal, stok, resep}); toast('Produk ditambahkan ✔'); }
+  batalEditProduk(); simpan(); render();
+}
+function salinProduk(id){
+  const p=db.produk.find(x=>x.id===id); if(!p) return;
+  document.getElementById('prodEditId').value='';
+  document.getElementById('prodNama').value=p.nama+' (salinan)';
+  document.getElementById('prodHarga').value=p.harga;
+  document.getElementById('prodStok').value='';
+  if(p.resep && p.resep.length){ formKomponen=p.resep.map(k=>({...k, id:uid()})); setModeModal('hpp'); }
+  else { formKomponen=[]; document.getElementById('prodModal').value=p.modal||''; setModeModal('langsung'); }
+  renderKomponenForm();
+  document.getElementById('judulFormProduk').textContent='Tambah Produk (dari salinan)';
+  document.getElementById('btnBatalEdit').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('Menu disalin — ubah nama & komponennya, lalu simpan ✔');
+}
+function editProduk(id){
+  const p=db.produk.find(x=>x.id===id); if(!p) return;
+  document.getElementById('prodEditId').value=p.id;
+  document.getElementById('prodNama').value=p.nama;
+  document.getElementById('prodHarga').value=p.harga;
+  document.getElementById('prodStok').value=p.stok;
+  if(p.resep && p.resep.length){ formKomponen=p.resep.map(k=>({...k})); setModeModal('hpp'); }
+  else { formKomponen=[]; document.getElementById('prodModal').value=p.modal||''; setModeModal('langsung'); }
+  renderKomponenForm();
+  document.getElementById('judulFormProduk').textContent='Edit Produk';
+  document.getElementById('btnBatalEdit').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function batalEditProduk(){
+  ['prodEditId','prodNama','prodHarga','prodModal','prodStok','fkNama','fkSatuan','fkHarga','fkIsi','fkPakai'].forEach(i=>document.getElementById(i).value='');
+  formKomponen=[]; setModeModal('langsung'); renderKomponenForm();
+  document.getElementById('judulFormProduk').textContent='Tambah Produk';
+  document.getElementById('btnBatalEdit').style.display='none';
+}
+function hapusProduk(id){
+  if(!confirm('Hapus produk ini? Riwayat transaksi lama tetap tersimpan.')) return;
+  db.produk=db.produk.filter(x=>x.id!==id); simpan(); render(); toast('Produk dihapus');
+}
+function tambahStokProduk(id){
+  const jml=prompt('Tambah berapa pcs?'); const n=+jml;
+  if(!n) return;
+  const p=db.produk.find(x=>x.id===id); p.stok+=n; simpan(); render(); toast('+'+n+' pcs '+p.nama);
+}
+function renderProduk(){
+  document.getElementById('daftarProduk').innerHTML = db.produk.length===0
+    ? '<div class="kosong">Belum ada produk.</div>'
+    : db.produk.map(p=>`
+      <div class="item">
+        <div class="info">
+          <div class="nama">${esc(p.nama)}</div>
+          <div class="sub">Jual ${rp(p.harga)} · Modal ${rp(p.modal)} · Untung ${rp(p.harga-p.modal)}/pcs · 🛵 ${rp(hargaOnline(p.harga))}</div>
+          <div class="sub"><span class="badge ${p.stok<=0?'habis':''}">stok ${p.stok} pcs</span></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end">
+          <button class="btn-kecil" onclick="tambahStokProduk('${p.id}')">+ Stok</button>
+          <button class="btn-kecil btn-abu" onclick="editProduk('${p.id}')">✏️ Edit & HPP</button>
+          <button class="btn-kecil btn-abu" onclick="salinProduk('${p.id}')">📋 Salin</button>
+          <button class="btn-merah" onclick="hapusProduk('${p.id}')">Hapus</button>
+        </div>
+      </div>`).join('');
+}
+
+// ===== Helper Biaya, Overhead & Setelan =====
+function biayaKomponen(k){ return k.isi>0 ? k.harga/k.isi*k.pakai : 0; }
+function overheadPerPcs(){ const o=db.overhead||{items:[]}; const t=(o.items||[]).reduce((s,i)=>s+i.biaya,0); return o.produksiPerBulan>0 ? t/o.produksiPerBulan : 0; }
+function hargaOnline(h){ const kom=((db.setelan&&db.setelan.komisi)||0)/100; return (kom>0&&kom<1&&h>0) ? Math.ceil((h/(1-kom))/500)*500 : h; }
+function tambahOverhead(){
+  const nama=document.getElementById('ovhNama').value.trim();
+  const biaya=+document.getElementById('ovhBiaya').value;
+  if(!nama||!biaya){ toast('Isi nama & biaya per bulan'); return; }
+  db.overhead.items.push({id:uid(), nama, biaya});
+  document.getElementById('ovhNama').value=''; document.getElementById('ovhBiaya').value='';
+  simpan(); renderOverhead(); perbaruiTotalForm(); toast('Overhead ditambahkan ✔');
+}
+function ubahOverhead(id,f,v){
+  const i=db.overhead.items.find(x=>x.id===id); if(!i) return;
+  if(f==='nama'){ i.nama=v; }
+  else { i.biaya=+v||0; document.getElementById('ovhPerPcs').textContent=rp(overheadPerPcs()); perbaruiTotalForm(); }
+  simpan();
+}
+function hapusOverhead(id){ db.overhead.items=db.overhead.items.filter(x=>x.id!==id); simpan(); renderOverhead(); perbaruiTotalForm(); }
+function setelProduksi(v){ db.overhead.produksiPerBulan=+v||0; simpan(); document.getElementById('ovhPerPcs').textContent=rp(overheadPerPcs()); perbaruiTotalForm(); }
+function terapkanOverhead(){
+  let n=0;
+  db.produk.forEach(p=>{ if(p.resep&&p.resep.length){ p.modal=Math.round(p.resep.reduce((s,k)=>s+biayaKomponen(k),0)+overheadPerPcs()); n++; } });
+  simpan(); render(); toast('Modal '+n+' produk dihitung ulang ✔');
+}
+function setelSetelan(){
+  db.setelan.komisi=+document.getElementById('setKomisi').value||0;
+  db.setelan.pajak=+document.getElementById('setPajak').value||0;
+  simpan(); contohSetelan(); renderKasir(); renderProduk(); hitungMarginForm();
+}
+function contohSetelan(){
+  document.getElementById('contohSetelan').textContent='Contoh: harga Rp15.000 → saran online food '+rp(hargaOnline(15000))+(db.setelan.pajak>0?(' · Pajak '+db.setelan.pajak+'% otomatis ditambahkan di kasir.'):' · Pajak nonaktif.');
+}
+function renderOverhead(){
+  const o=db.overhead;
+  document.getElementById('daftarOverhead').innerHTML = o.items.length===0
+    ? '<div class="kosong">Belum ada overhead. Contoh: Listrik Rp150.000/bulan, Gas Rp90.000/bulan.</div>'
+    : o.items.map(i=>`<div class="item" style="flex-wrap:wrap"><div class="baris" style="width:100%; align-items:flex-end"><div style="flex:2"><label>Nama biaya</label><input value="${esc(i.nama)}" oninput="ubahOverhead('${i.id}','nama',this.value)"></div><div style="flex:1"><label>Rp / bulan</label><input type="number" inputmode="numeric" value="${i.biaya}" oninput="ubahOverhead('${i.id}','biaya',this.value)"></div><button class="btn-merah" style="margin-bottom:4px" onclick="hapusOverhead('${i.id}')">✕</button></div></div>`).join('');
+  if(document.activeElement!==document.getElementById('ovhProduksi')) document.getElementById('ovhProduksi').value=o.produksiPerBulan||'';
+  document.getElementById('ovhPerPcs').textContent=rp(overheadPerPcs());
+  if(document.activeElement!==document.getElementById('setKomisi')) document.getElementById('setKomisi').value=db.setelan.komisi;
+  if(document.activeElement!==document.getElementById('setPajak')) document.getElementById('setPajak').value=db.setelan.pajak;
+  contohSetelan();
+}
+function imporMenu(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const d=JSON.parse(r.result);
+    const daftar=Array.isArray(d)?d:(d.produk||[]);
+    if(!daftar.length) throw 0;
+    let n=0;
+    for(const q of daftar){
+      if(!q.nama||!q.harga) continue;
+      if(db.produk.some(p=>p.nama.toLowerCase()===q.nama.toLowerCase())) continue;
+      const resep=(q.resep||[]).map(k=>({id:uid(), nama:k.nama, harga:+k.harga||0, isi:+k.isi||1, pakai:+k.pakai||0, satuan:k.satuan||'pcs'}));
+      const modal=resep.length? Math.round(resep.reduce((s,k)=>s+biayaKomponen(k),0)+overheadPerPcs()) : (+q.modal||0);
+      db.produk.push({id:uid(), nama:q.nama, harga:+q.harga, modal, stok:+q.stok||0, resep:resep.length?resep:null});
+      n++;
+    }
+    simpan(); render(); toast(n+' menu berhasil diimpor ✔');
+  }catch(e){ toast('File menu tidak valid'); } };
+  r.readAsText(f); inp.value='';
+}
+
+// ===== Bahan =====// ===== Bahan =====
+function simpanBahan(){
+  const nama=document.getElementById('bhnNama').value.trim();
+  const jumlah=+document.getElementById('bhnJumlah').value||0;
+  const satuan=document.getElementById('bhnSatuan').value.trim()||'pcs';
+  const min=+document.getElementById('bhnMin').value||0;
+  if(!nama){ toast('Isi nama bahan'); return; }
+  db.bahan.push({id:uid(), nama, jumlah, satuan, min});
+  ['bhnNama','bhnJumlah','bhnSatuan','bhnMin'].forEach(i=>document.getElementById(i).value='');
+  simpan(); render(); toast('Bahan tersimpan ✔');
+}
+function ubahBahan(id, tanda){
+  const b=db.bahan.find(x=>x.id===id); if(!b) return;
+  const jml=prompt((tanda>0?'Tambah':'Kurangi')+' berapa '+b.satuan+'?');
+  const n=+jml; if(!n) return;
+  b.jumlah=Math.max(0, b.jumlah+tanda*n); simpan(); render();
+}
+function hapusBahan(id){ if(confirm('Hapus bahan ini?')){ db.bahan=db.bahan.filter(x=>x.id!==id); simpan(); render(); } }
+function renderBahan(){
+  document.getElementById('daftarBahan').innerHTML = db.bahan.length===0
+    ? '<div class="kosong">Belum ada bahan baku.</div>'
+    : db.bahan.map(b=>`
+      <div class="item">
+        <div class="info">
+          <div class="nama">${esc(b.nama)}</div>
+          <div class="sub"><span class="badge ${b.jumlah<=b.min?'habis':''}">${b.jumlah} ${esc(b.satuan)}</span>${b.jumlah<=b.min?' ⚠️ hampir habis':''}</div>
+        </div>
+        <div class="qty-ctl">
+          <button onclick="ubahBahan('${b.id}',-1)">−</button>
+          <button onclick="ubahBahan('${b.id}',1)">+</button>
+          <button class="btn-merah" style="width:auto;height:auto;border-radius:10px;background:none" onclick="hapusBahan('${b.id}')">✕</button>
+        </div>
+      </div>`).join('');
+}
+
+// ===== Pelanggan & Kasbon =====
+function totalUtang(p){ return p.utang.reduce((s,u)=>s+(u.tipe==='bayar'?-u.jumlah:u.jumlah),0); }
+function simpanPelanggan(){
+  const nama=document.getElementById('pelNama').value.trim();
+  if(!nama){ toast('Isi nama pelanggan'); return; }
+  db.pelanggan.push({id:uid(), nama:nama.slice(0,40), wa:document.getElementById('pelWa').value.trim(), catatan:document.getElementById('pelCatatan').value.trim(), utang:[]});
+  ['pelNama','pelWa','pelCatatan'].forEach(i=>document.getElementById(i).value='');
+  simpan(); render(); toast('Pelanggan tersimpan ✔');
+}
+function hapusPelanggan(id){
+  const p=db.pelanggan.find(x=>x.id===id); if(!p) return;
+  const u=totalUtang(p);
+  if(!confirm('Hapus '+p.nama+'?'+(u>0?' Masih ada utang '+rp(u)+'!':''))) return;
+  db.pelanggan=db.pelanggan.filter(x=>x.id!==id); simpan(); render(); toast('Pelanggan dihapus');
+}
+function tambahUtang(id){
+  const p=db.pelanggan.find(x=>x.id===id); if(!p) return;
+  const j=+(prompt('Jumlah utang baru (Rp):')||0); if(!j||j<=0) return;
+  const k=prompt('Keterangan (opsional):')||'';
+  p.utang.push({id:uid(), tanggal:hariIni(), waktu:Date.now(), jumlah:j, ket:k.trim(), tipe:'utang'});
+  simpan(); render(); toast('Utang dicatat ✔');
+}
+function bayarUtang(id){
+  const p=db.pelanggan.find(x=>x.id===id); if(!p) return;
+  const t=totalUtang(p);
+  if(t<=0){ toast('Tidak ada utang berjalan'); return; }
+  let j=+(prompt('Jumlah pembayaran (Rp) — utang: '+rp(t))||0); if(!j||j<=0) return;
+  if(j>t){ if(!confirm('Lebih besar dari utang. Catat '+rp(t)+' saja (lunas)?')) return; j=t; }
+  p.utang.push({id:uid(), tanggal:hariIni(), waktu:Date.now(), jumlah:j, ket:'Pembayaran', tipe:'bayar'});
+  simpan(); render(); toast(totalUtang(p)<=0?'Lunas! 🎉':'Pembayaran dicatat ✔');
+}
+function toggleRiwayatPel(id){
+  const d=document.getElementById('pd_'+id); if(d) d.style.display=d.style.display==='none'?'block':'none';
+}
+function renderPelanggan(){
+  const total=db.pelanggan.reduce((s,p)=>s+Math.max(0,totalUtang(p)),0);
+  document.getElementById('totalPiutang').textContent='Piutang: '+rp(total);
+  document.getElementById('daftarPelanggan').innerHTML = db.pelanggan.length===0
+    ? '<div class="kosong">Belum ada pelanggan.</div>'
+    : db.pelanggan.map(p=>{
+      const u=totalUtang(p);
+      const riw=[...p.utang].sort((a,b)=>(b.waktu||0)-(a.waktu||0)).slice(0,20).map(x=>
+        `<div class="item"><div class="info"><div class="sub">${tglCantik(x.tanggal)}${x.ket?' — '+esc(x.ket):''}</div></div><span class="badge ${x.tipe==='bayar'?'':'habis'}">${x.tipe==='bayar'?'−':'+'}${rp(x.jumlah)}</span></div>`).join('')||'<div class="kosong">Belum ada catatan.</div>';
+      return `
+      <div class="item" style="flex-wrap:wrap">
+        <div class="info">
+          <div class="nama">${esc(p.nama)} ${u>0?'<span class="badge habis">utang '+rp(u)+'</span>':'<span class="badge">lunas</span>'}</div>
+          <div class="sub">${p.wa?'📱 '+esc(p.wa)+(p.catatan?' · ':''):''}${esc(p.catatan||'')}</div>
+        </div>
+        <div style="display:flex; gap:5px; flex-wrap:wrap">
+          ${p.wa?'<a class="btn-kecil" style="text-decoration:none" href="'+waLink(p.wa)+'" target="_blank">💬</a>':''}
+          <button class="btn-kecil" onclick="tambahUtang('${p.id}')">+ Utang</button>
+          <button class="btn-kecil btn-abu" onclick="bayarUtang('${p.id}')">Bayar</button>
+          <button class="btn-kecil btn-abu" onclick="toggleRiwayatPel('${p.id}')">Riwayat</button>
+          <button class="btn-merah" onclick="hapusPelanggan('${p.id}')">✕</button>
+        </div>
+        <div id="pd_${p.id}" style="display:none; width:100%">${riw}</div>
+      </div>`;
+    }).join('');
+}
+
+// ===== Pengeluaran =====
+function simpanPengeluaran(){
+  const tgl=document.getElementById('klrTgl').value||hariIni();
+  const jumlah=+document.getElementById('klrJumlah').value;
+  if(!jumlah){ toast('Isi jumlah pengeluaran'); return; }
+  db.pengeluaran.push({id:uid(), tanggal:tgl, kategori:document.getElementById('klrKategori').value, jumlah, ket:document.getElementById('klrKet').value.trim()});
+  document.getElementById('klrJumlah').value=''; document.getElementById('klrKet').value='';
+  simpan(); render(); toast('Pengeluaran '+tglCantik(tgl)+' tersimpan ✔');
+}
+function hapusPengeluaran(id){ if(confirm('Hapus pengeluaran ini?')){ db.pengeluaran=db.pengeluaran.filter(x=>x.id!==id); simpan(); render(); } }
+function renderKeluar(){
+  const bln=hariIni().slice(0,7);
+  const daftar=db.pengeluaran.filter(k=>k.tanggal.startsWith(bln)).sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
+  const total=daftar.reduce((s,k)=>s+k.jumlah,0);
+  document.getElementById('daftarKeluar').innerHTML =
+    (daftar.length===0 ? '<div class="kosong">Belum ada pengeluaran bulan ini.</div>'
+    : daftar.map(k=>`
+      <div class="item">
+        <div class="info">
+          <div class="nama">${rp(k.jumlah)} <span class="sub">· ${esc(k.kategori)}</span></div>
+          <div class="sub">${tglCantik(k.tanggal)}${k.ket?' — '+esc(k.ket):''}</div>
+        </div>
+        <button class="btn-merah" onclick="hapusPengeluaran('${k.id}')">Hapus</button>
+      </div>`).join(''))
+    + `<div class="total-bar"><span>Total bulan ini</span><span>${rp(total)}</span></div>`;
+}
+
+// ===== Laporan =====
+function setPeriode(mode){
+  const s=hariIni();
+  let dari=s;
+  if(mode==='minggu'){ const d=new Date(); d.setDate(d.getDate()-6); dari=d.toISOString().slice(0,10); }
+  if(mode==='bulan'){ dari=s.slice(0,8)+'01'; }
+  if(mode==='tahun'){ dari=s.slice(0,4)+'-01-01'; }
+  document.getElementById('lapDari').value=dari;
+  document.getElementById('lapSampai').value=s;
+  renderLaporan();
+}
+function renderLaporan(){
+  const dari=document.getElementById('lapDari').value||hariIni();
+  const sampai=document.getElementById('lapSampai').value||hariIni();
+  const trx=db.transaksi.filter(t=>t.tanggal>=dari&&t.tanggal<=sampai);
+  const klr=db.pengeluaran.filter(k=>k.tanggal>=dari&&k.tanggal<=sampai);
+  const omzet=trx.reduce((s,t)=>s+t.total,0);
+  const modal=trx.reduce((s,t)=>s+(t.modal||0),0);
+  const pcs=trx.reduce((s,t)=>s+t.item.reduce((a,i)=>a+i.qty,0),0);
+  const keluar=klr.reduce((s,k)=>s+k.jumlah,0);
+  const pjkTotal=trx.reduce((s,t)=>s+(t.pajak||0),0);
+  const labaKotor=omzet-modal-pjkTotal, labaBersih=labaKotor-keluar;
+  document.getElementById('lapOmzet').textContent=rp(omzet);
+  document.getElementById('lapBotol').textContent=pcs+' pcs';
+  document.getElementById('lapLabaKotor').textContent=rp(labaKotor);
+  document.getElementById('lapKeluar').textContent=rp(keluar);
+  const lb=document.getElementById('lapLabaBersih');
+  lb.textContent=rp(labaBersih); lb.className='nilai '+(labaBersih>=0?'hijau':'merah');
+
+  const met={};
+  trx.forEach(t=>{ const m=t.metode||'Cash'; if(!met[m]) met[m]={total:0,jml:0}; met[m].total+=t.total; met[m].jml++; });
+  const ikon={Cash:'💵',QRIS:'📱',Transfer:'🏦',Utang:'🧾'};
+  document.getElementById('lapMetode').innerHTML = Object.keys(met).length===0
+    ? '<div class="kosong">Belum ada data.</div>'
+    : Object.entries(met).sort((a,b)=>b[1].total-a[1].total).map(([m,v])=>
+      `<div class="item"><div class="nama">${ikon[m]||'💳'} ${esc(m)} <span class="sub">· ${v.jml} transaksi</span></div><span class="badge">${rp(v.total)}</span></div>`).join('')
+      +(pjkTotal>0?`<div class="item"><div class="nama">🏛️ Pajak terkumpul <span class="sub">· sudah dipisah dari laba</span></div><span class="badge">${rp(pjkTotal)}</span></div>`:'');
+
+  const peta={};
+  trx.forEach(t=>t.item.forEach(i=>{ peta[i.nama]=(peta[i.nama]||0)+i.qty; }));
+  const urut=Object.entries(peta).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('lapTerlaris').innerHTML = urut.length===0
+    ? '<div class="kosong">Belum ada data.</div>'
+    : urut.map(([n,q],i)=>`<div class="item"><div class="nama">${i+1}. ${esc(n)}</div><span class="badge">${q} pcs</span></div>`).join('');
+
+  const daftar=[...trx].sort((a,b)=>b.waktu-a.waktu).slice(0,50);
+  document.getElementById('lapRiwayat').innerHTML = daftar.length===0
+    ? '<div class="kosong">Tidak ada transaksi di periode ini.</div>'
+    : daftar.map(t=>`
+      <div class="item">
+        <div class="info">
+          <div class="nama">${rp(t.total)} <span class="sub">· ${tglCantik(t.tanggal)} ${jamDari(t.waktu)}</span></div>
+          <div class="sub">${t.item.map(i=>esc(i.nama)+' ×'+i.qty).join(', ')}</div>
+        </div>
+      </div>`).join('');
+}
+
+// ===== Cloud (Google Drive — appDataFolder milik customer sendiri, via GIS OAuth) =====
+// PENTING: ganti CLIENT_ID di bawah dengan OAuth Client ID kamu sendiri dari Google Cloud Console.
+// Panduan setupnya ada di file terpisah "panduan-setup-drive-selaris.md".
+const GOOGLE_CLIENT_ID = 'GANTI-DENGAN-CLIENT-ID-KAMU.apps.googleusercontent.com';
+let gisToken=null, tokenClient=null;
+function initGoogleAuth(){
+  if(!window.google || !google.accounts || !google.accounts.oauth2){ setTimeout(initGoogleAuth, 500); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.appdata',
+    callback: (resp)=>{
+      if(resp && resp.access_token){
+        gisToken = resp.access_token;
+        db.driveTerhubung = true; simpan(true);
+        backupKeDrive(true); renderCloud();
+        toast('Google Drive terhubung ✔');
+      }
+    }
+  });
+}
+function hubungkanDrive(){
+  if(!tokenClient){ toast('Google belum siap, coba lagi sebentar'); return; }
+  tokenClient.requestAccessToken();
+}
+function hubungkanDriveOnboard(){ hubungkanDrive(); selesaiOnboard(); }
+async function driveCariFileId(){
+  const r = await fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)', { headers:{ Authorization:'Bearer '+gisToken } });
+  if(!r.ok) throw new Error('auth');
+  const j = await r.json();
+  const f = (j.files||[]).find(x=>x.name==='selaris-backup.json');
+  return f ? f.id : null;
+}
+async function backupKeDrive(diam){
+  if(!gisToken){ if(diam!==true) toast('Hubungkan Google Drive dulu'); return; }
+  try{
+    const id = await driveCariFileId();
+    const isi = JSON.stringify(db);
+    const metadata = id ? {} : {name:'selaris-backup.json', parents:['appDataFolder']};
+    const boundary='selaris_boundary_'+Date.now();
+    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${isi}\r\n--${boundary}--`;
+    const url = id ? `https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=multipart` : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
+    const r = await fetch(url, { method: id?'PATCH':'POST', headers:{ Authorization:'Bearer '+gisToken, 'Content-Type':'multipart/related; boundary='+boundary }, body });
+    if(!r.ok) throw new Error('upload');
+    db.driveTerakhir=Date.now(); simpan(true); renderCloud();
+    if(diam!==true) toast('Backup ke Google Drive berhasil ✔');
+  }catch(e){ if(diam!==true) toast('Gagal backup — sesi mungkin habis, ketuk Hubungkan Google Drive lagi'); }
+}
+async function pulihkanDariDrive(){
+  if(!gisToken){ toast('Hubungkan Google Drive dulu'); return; }
+  if(!confirm('Ambil data dari Google Drive dan GANTI data di perangkat ini?')) return;
+  try{
+    const id = await driveCariFileId();
+    if(!id){ toast('Belum ada backup di akun Drive ini'); return; }
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, { headers:{ Authorization:'Bearer '+gisToken } });
+    if(!r.ok) throw new Error('fetch');
+    const d = await r.json();
+    if(!d || !d.produk) throw new Error('format');
+    d.pelanggan=d.pelanggan||[]; d.overhead=d.overhead||{items:[],produksiPerBulan:0}; d.setelan=d.setelan||{komisi:20,pajak:0}; d.driveTerhubung=true;
+    db=d; simpan(true); render(); tampilkanLogo(); tampilkanNama(); renderCloud();
+    toast('Data dari Google Drive terpasang ✔');
+  }catch(e){ toast('Gagal ambil data dari Drive'); }
+}
+let _driveTimer=null;
+function jadwalkanBackupDrive(){
+  if(!gisToken) return;
+  clearTimeout(_driveTimer);
+  _driveTimer=setTimeout(()=>backupKeDrive(true), 12000);
+}
+function renderCloud(){
+  const st=document.getElementById('cloudStatus'); if(!st) return;
+  if(!gisToken && !db.driveTerhubung) st.textContent='Belum terhubung ke Google Drive. Data cuma tersimpan di perangkat ini.';
+  else if(!gisToken && db.driveTerhubung) st.textContent='Google Drive pernah tersambung — ketuk "Hubungkan Google Drive" buat lanjutkan sesi.';
+  else st.textContent='Google Drive AKTIF ✔ '+(db.driveTerakhir? 'Terakhir backup: '+new Date(db.driveTerakhir).toLocaleString('id-ID') : 'Belum pernah backup.');
+}
+async function bagikanBackup(){
+  const isi=JSON.stringify(db,null,1), nama='backup-'+slug(db.namaUsaha)+'-'+hariIni()+'.json';
+  try{
+    if(navigator.canShare){
+      const f=new File([isi],nama,{type:'application/json'});
+      if(navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:nama}); return; }
+    }
+  }catch(e){ if(e && e.name==='AbortError') return; }
+  unduh(nama,isi,'application/json');
+  toast('Menu bagikan tidak didukung — file diunduh');
+}
+
+// ===== Ekspor / Backup =====
+function unduh(nama, isi, tipe){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([isi],{type:tipe}));
+  a.download=nama; a.click(); URL.revokeObjectURL(a.href);
+}
+function eksporCSV(){
+  const dari=document.getElementById('lapDari').value||hariIni();
+  const sampai=document.getElementById('lapSampai').value||hariIni();
+  const trx=db.transaksi.filter(t=>t.tanggal>=dari&&t.tanggal<=sampai);
+  let csv='Tanggal;Jam;Produk;Qty;Harga;Subtotal;Metode;Catatan\n';
+  trx.forEach(t=>t.item.forEach(i=>{
+    csv+=`${t.tanggal};${jamDari(t.waktu)};"${i.nama}";${i.qty};${i.harga};${i.harga*i.qty};${t.metode||'Cash'};"${(t.catatan||'').replace(/"/g,"'")}"\n`;
+  }));
+  unduh(`penjualan_${dari}_${sampai}.csv`, '﻿'+csv, 'text/csv;charset=utf-8');
+  toast('CSV terunduh ✔');
+}
+function eksporBackup(){
+  unduh('backup-'+slug(db.namaUsaha)+'-'+hariIni()+'.json', JSON.stringify(db,null,1), 'application/json');
+  toast('Backup terunduh ✔');
+}
+function imporBackup(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const d=JSON.parse(r.result);
+    if(!d.produk||!d.transaksi) throw 0;
+    d.pelanggan=d.pelanggan||[]; d.overhead=d.overhead||{items:[],produksiPerBulan:0}; d.setelan=d.setelan||{komisi:20,pajak:0};
+    if(confirm('Restore akan MENGGANTI semua data sekarang. Lanjut?')){ db=d; simpan(); render(); tampilkanLogo(); tampilkanNama(); renderCloud(); toast('Data berhasil di-restore ✔'); }
+  }catch(e){ toast('File backup tidak valid'); } };
+  r.readAsText(f); inp.value='';
+}
+
+// ===== Render utama =====
+function render(){ renderKasir(); renderProduk(); renderBahan(); renderKeluar(); renderOverhead(); renderPelanggan(); renderLaporan(); }
+tampilkanNama();
+tampilkanLogo();
+renderCloud();
+initGoogleAuth();
+document.getElementById('hdrTgl').textContent = new Date().toLocaleDateString('id-ID',{day:'numeric', month:'long'});
+document.getElementById('klrTgl').value=hariIni();
+document.getElementById('tglJual').value=hariIni();
+setPeriode('hari');
+renderKomponenForm();
+render();
+if(!db.namaUsaha){ document.getElementById('onboard').classList.add('tampil'); }
+</script>
+</body>
+</html>
+<!-- Selaris v2.0 (nav 5-menu, mode simpel default, auto-backup Google Drive) -->
