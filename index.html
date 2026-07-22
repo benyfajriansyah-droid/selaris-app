@@ -931,7 +931,7 @@ function renderLaporan(){
 // ===== Cloud (Google Drive — appDataFolder milik customer sendiri, via GIS OAuth) =====
 // PENTING: ganti CLIENT_ID di bawah dengan OAuth Client ID kamu sendiri dari Google Cloud Console.
 // Panduan setupnya ada di file terpisah "panduan-setup-drive-selaris.md".
-const GOOGLE_CLIENT_ID = 'GANTI-DENGAN-CLIENT-ID-KAMU.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '66647927671-7ijtns51acln05u1shda81g19utuhpm5.apps.googleusercontent.com';
 let gisToken=null, tokenClient=null;
 function initGoogleAuth(){
   if(!window.google || !google.accounts || !google.accounts.oauth2){ setTimeout(initGoogleAuth, 500); return; }
