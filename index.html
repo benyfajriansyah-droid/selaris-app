@@ -942,8 +942,7 @@ function initGoogleAuth(){
       if(resp && resp.access_token){
         gisToken = resp.access_token;
         db.driveTerhubung = true; simpan(true);
-        backupKeDrive(true); renderCloud();
-        toast('Google Drive terhubung ✔');
+        putuskanSinkronisasiAwal();
       }
     }
   });
@@ -960,6 +959,25 @@ async function driveCariFileId(){
   const f = (j.files||[]).find(x=>x.name==='selaris-backup.json');
   return f ? f.id : null;
 }
+// Dipanggil SEKALI tiap kali baru berhasil connect — mencegah data kosong/baru menimpa backup lama di Drive.
+async function putuskanSinkronisasiAwal(){
+  try{
+    const id = await driveCariFileId();
+    const localAdaData = (db.produk.length>0 || db.transaksi.length>0);
+    if(id && localAdaData){
+      const pilihDrive = confirm('Ditemukan backup lain di Google Drive akun ini.\n\nOK = pakai data dari Drive (timpa data di perangkat ini)\nBatal = simpan data perangkat ini ke Drive (timpa backup lama di Drive)');
+      if(pilihDrive){ await ambilDataDariDriveId(id); toast('Google Drive terhubung — data dari Drive dipasang ✔'); }
+      else { await backupKeDrive(true); toast('Google Drive terhubung — data perangkat ini disimpan ✔'); }
+    } else if(id && !localAdaData){
+      await ambilDataDariDriveId(id);
+      toast('Google Drive terhubung — data lama ditemukan & dipulihkan ✔');
+    } else {
+      await backupKeDrive(true);
+      toast('Google Drive terhubung ✔');
+    }
+  }catch(e){ toast('Google Drive terhubung, tapi sinkronisasi awal gagal — coba manual di tab Laporan'); }
+  renderCloud();
+}
 async function backupKeDrive(diam){
   if(!gisToken){ if(diam!==true) toast('Hubungkan Google Drive dulu'); return; }
   try{
@@ -975,18 +993,22 @@ async function backupKeDrive(diam){
     if(diam!==true) toast('Backup ke Google Drive berhasil ✔');
   }catch(e){ if(diam!==true) toast('Gagal backup — sesi mungkin habis, ketuk Hubungkan Google Drive lagi'); }
 }
+async function ambilDataDariDriveId(id){
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, { headers:{ Authorization:'Bearer '+gisToken } });
+  if(!r.ok) throw new Error('fetch');
+  const d = await r.json();
+  if(!d || !d.produk) throw new Error('format');
+  d.pelanggan=d.pelanggan||[]; d.overhead=d.overhead||{items:[],produksiPerBulan:0}; d.setelan=d.setelan||{komisi:20,pajak:0}; d.driveTerhubung=true;
+  db=d; simpan(true); render(); tampilkanLogo(); tampilkanNama();
+}
 async function pulihkanDariDrive(){
   if(!gisToken){ toast('Hubungkan Google Drive dulu'); return; }
   if(!confirm('Ambil data dari Google Drive dan GANTI data di perangkat ini?')) return;
   try{
     const id = await driveCariFileId();
     if(!id){ toast('Belum ada backup di akun Drive ini'); return; }
-    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, { headers:{ Authorization:'Bearer '+gisToken } });
-    if(!r.ok) throw new Error('fetch');
-    const d = await r.json();
-    if(!d || !d.produk) throw new Error('format');
-    d.pelanggan=d.pelanggan||[]; d.overhead=d.overhead||{items:[],produksiPerBulan:0}; d.setelan=d.setelan||{komisi:20,pajak:0}; d.driveTerhubung=true;
-    db=d; simpan(true); render(); tampilkanLogo(); tampilkanNama(); renderCloud();
+    await ambilDataDariDriveId(id);
+    renderCloud();
     toast('Data dari Google Drive terpasang ✔');
   }catch(e){ toast('Gagal ambil data dari Drive'); }
 }
