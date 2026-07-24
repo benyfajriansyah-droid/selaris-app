@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Selaris — Kasir & Pembukuan UMKM</title>
+<meta name="theme-color" content="#5b3a29">
+<meta name="description" content="Kasir + pembukuan simpel buat usaha UMKM, offline & bisa di-install ke HP.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Selaris">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
@@ -70,6 +78,23 @@ small.ket{color:var(--muted); font-size:11px; display:block; margin-top:6px}
 .onboard-card h2{font-size:19px; margin-bottom:6px}
 .onboard-card p{font-size:13px; color:var(--muted); margin-bottom:14px; line-height:1.5}
 .onboard-card input{text-align:center; font-size:16px}
+#strukModal{position:fixed; inset:0; background:rgba(45,36,25,.5); z-index:60; display:none; align-items:center; justify-content:center; padding:20px}
+#strukModal.tampil{display:flex}
+.struk-card{background:#fff; border-radius:16px; padding:20px; max-width:340px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 4px 20px rgba(91,58,41,.2)}
+#strukIsi{font-family:'Courier New',monospace; font-size:13px}
+.struk-toko{font-weight:800; text-align:center; font-size:15px; margin-bottom:2px}
+.struk-meta{text-align:center; color:var(--muted); font-size:11px}
+.struk-garis{border-top:1px dashed var(--line); margin:8px 0}
+.struk-item{display:flex; justify-content:space-between; padding:2px 0; gap:8px}
+.struk-total{font-weight:800; font-size:14px; border-top:1px solid var(--text); padding-top:4px; margin-top:2px}
+.struk-footer{text-align:center; margin-top:6px}
+.banner-peringatan{background:#fde3df; color:var(--red); border-radius:12px; padding:10px 12px; font-size:13px; margin-bottom:12px; cursor:pointer; display:none}
+@media print{
+  body>*:not(#strukModal){display:none!important}
+  #strukModal{position:static; background:none; display:block!important; padding:0}
+  .struk-card{box-shadow:none; max-height:none; max-width:100%}
+  .no-print{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -102,6 +127,7 @@ small.ket{color:var(--muted); font-size:11px; display:block; margin-top:6px}
 </div>
 
 <div class="page aktif" id="pgKasir">
+  <div class="banner-peringatan" id="bannerStok" onclick="pindah('Produk', document.querySelectorAll('nav button')[1])"></div>
   <div class="stat-grid">
     <div class="stat"><div class="lbl">Omzet Hari Ini</div><div class="nilai hijau" id="dashOmzet">Rp0</div></div>
     <div class="stat"><div class="lbl">Laba Kotor Hari Ini</div><div class="nilai" id="dashLaba">Rp0</div></div>
@@ -120,6 +146,11 @@ small.ket{color:var(--muted); font-size:11px; display:block; margin-top:6px}
       <button class="metode" data-m="QRIS" onclick="pilihMetode(this)">📱 QRIS</button>
       <button class="metode" data-m="Transfer" onclick="pilihMetode(this)">🏦 Transfer</button>
       <button class="metode" data-m="Utang" onclick="pilihMetode(this)">🧾 Utang</button>
+    </div>
+    <div id="bagianTunai">
+      <label>Uang diterima (Rp) — opsional, buat hitung kembalian</label>
+      <input id="uangDiterima" type="number" inputmode="numeric" placeholder="cth: 50000" oninput="hitungKembalian()">
+      <div class="total-bar" style="border-top:none; margin-top:2px; padding-top:2px; font-weight:400; font-size:13px"><span>Kembalian</span><span id="kembalianJual">Rp0</span></div>
     </div>
     <label>Pelanggan (opsional — wajib untuk Utang)</label>
     <select id="pelangganJual"><option value="">— Umum —</option></select>
@@ -300,6 +331,10 @@ small.ket{color:var(--muted); font-size:11px; display:block; margin-top:6px}
     <div class="stat" style="grid-column:1/-1"><div class="lbl">Laba bersih (laba kotor − pengeluaran)</div><div class="nilai" id="lapLabaBersih">Rp0</div></div>
   </div>
   <div class="card">
+    <h2>📈 Tren Omzet & Laba</h2>
+    <div id="lapGrafik"></div>
+  </div>
+  <div class="card">
     <h2>Omzet per Metode Bayar</h2>
     <div id="lapMetode"></div>
   </div>
@@ -310,6 +345,12 @@ small.ket{color:var(--muted); font-size:11px; display:block; margin-top:6px}
   <div class="card">
     <h2>Riwayat Transaksi</h2>
     <div id="lapRiwayat"></div>
+  </div>
+  <div class="card">
+    <h2>🔔 Notifikasi Pengingat Stok</h2>
+    <small class="ket" id="notifStatus"></small>
+    <button class="btn-utama" style="margin-top:10px" onclick="mintaIzinNotifikasi()">🔔 Aktifkan Notifikasi</button>
+    <small class="ket">Selaris akan mengingatkan lewat notifikasi browser kalau ada produk habis atau bahan baku hampir habis, tiap kali aplikasi dibuka.</small>
   </div>
   <div class="card">
     <h2>Data & Backup</h2>
@@ -333,7 +374,7 @@ small.ket{color:var(--muted); font-size:11px; display:block; margin-top:6px}
       <button class="btn-abu" onclick="pulihkanDariDrive()">Ambil dari Drive</button>
     </div>
     <small class="ket">Data kamu tersimpan di folder khusus aplikasi di Google Drive milikmu sendiri — bukan di server Selaris. Ganti HP? Login Google yang sama, ketuk "Ambil dari Drive".</small>
-    <small class="ket">Selaris v2.0 · Bantuan & info update: IG @belajaraibarengbeny</small>
+    <small class="ket">Selaris v2.1 · Bantuan & info update: IG @belajaraibarengbeny</small>
   </div>
 </div>
 
@@ -344,6 +385,17 @@ small.ket{color:var(--muted); font-size:11px; display:block; margin-top:6px}
   <button onclick="pindah('Pelanggan',this)"><span class="ikon">👥</span>Pelanggan</button>
   <button onclick="pindah('Laporan',this)"><span class="ikon">📊</span>Laporan</button>
 </nav>
+
+<div id="strukModal">
+  <div class="struk-card">
+    <div id="strukIsi"></div>
+    <div class="aksi-baris no-print" style="margin-top:14px">
+      <button class="btn-hijau" onclick="cetakStruk()">🖨️ Cetak</button>
+      <button class="btn-utama" style="margin-top:0" onclick="bagikanStruk()">📤 Bagikan</button>
+    </div>
+    <button class="btn-abu no-print" style="width:100%; margin-top:8px" onclick="tutupStruk()">Tutup</button>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -428,6 +480,21 @@ function pilihMetode(b){
   metodeJual = b.dataset.m;
   document.querySelectorAll('.metode').forEach(x=>x.classList.remove('aktif'));
   b.classList.add('aktif');
+  document.getElementById('bagianTunai').style.display = metodeJual==='Cash' ? 'block' : 'none';
+  hitungKembalian();
+}
+function totalKeranjang(){
+  const subtotal = Object.entries(keranjang).reduce((s,[id,q])=>{ const p=db.produk.find(x=>x.id===id); return s+(p?p.harga*q:0); },0);
+  const pajak=(db.setelan.pajak>0)? Math.round(subtotal*db.setelan.pajak/100) : 0;
+  return {subtotal, pajak, total:subtotal+pajak};
+}
+function hitungKembalian(){
+  const el=document.getElementById('kembalianJual'); if(!el) return;
+  const {total}=totalKeranjang();
+  const diterima=+document.getElementById('uangDiterima').value||0;
+  if(diterima<=0){ el.textContent='Rp0'; el.style.color=''; return; }
+  if(diterima<total){ el.textContent='Kurang '+rp(total-diterima); el.style.color='var(--red)'; }
+  else { el.textContent=rp(diterima-total); el.style.color='var(--green)'; }
 }
 function cekTglJual(){
   const t=document.getElementById('tglJual').value;
@@ -462,11 +529,11 @@ function renderKasir(){
         <button onclick="ubahQty('${p.id}',1)">+</button>
       </div>
     </div>`).join('');
-  const subtotal = Object.entries(keranjang).reduce((s,[id,q])=>{ const p=db.produk.find(x=>x.id===id); return s+(p?p.harga*q:0); },0);
-  const pjkK=(db.setelan.pajak>0)? Math.round(subtotal*db.setelan.pajak/100) : 0;
+  const {subtotal, pajak:pjkK} = totalKeranjang();
   document.getElementById('rincianBayar').innerHTML = pjkK>0
     ? `<div class="item" style="padding:4px 0; border:none"><span class="sub">Subtotal</span><span class="sub">${rp(subtotal)}</span></div><div class="item" style="padding:4px 0; border:none"><span class="sub">Pajak ${db.setelan.pajak}%</span><span class="sub">${rp(pjkK)}</span></div>` : '';
   document.getElementById('totalJual').textContent = rp(subtotal+pjkK);
+  hitungKembalian();
   const trxHariIni = db.transaksi.filter(t=>t.tanggal===hariIni()).sort((a,b)=>b.waktu-a.waktu);
   document.getElementById('jmlTrxHariIni').textContent = trxHariIni.length+' transaksi · '+rp(trxHariIni.reduce((s,t)=>s+t.total,0));
   const omzetHariIni = trxHariIni.reduce((s,t)=>s+t.total,0);
@@ -484,7 +551,10 @@ function renderKasir(){
           <div class="nama">${rp(t.total)} <span class="badge">${esc(t.metode||'Cash')}</span> <span class="sub">· ${jamDari(t.waktu)}</span></div>
           <div class="sub">${t.item.map(i=>esc(i.nama)+' ×'+i.qty).join(', ')}${t.pelangganId?' · 👤 '+esc(namaPel(t.pelangganId)):''}${t.catatan?' — '+esc(t.catatan):''}</div>
         </div>
-        <button class="btn-merah" onclick="hapusTransaksi('${t.id}')">Hapus</button>
+        <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end">
+          <button class="btn-kecil btn-abu" onclick="bukaStrukId('${t.id}')">🧾 Struk</button>
+          <button class="btn-merah" onclick="hapusTransaksi('${t.id}')">Hapus</button>
+        </div>
       </div>`).join('');
 }
 function simpanTransaksi(){
@@ -501,17 +571,28 @@ function simpanTransaksi(){
   }
   const pelId=document.getElementById('pelangganJual').value||null;
   if(metodeJual==='Utang' && !pelId){ toast('Pilih pelanggan dulu untuk kasbon/utang'); return; }
+  const pjk=(db.setelan.pajak>0)? Math.round(total*db.setelan.pajak/100) : 0;
+  const totalAkhir=total+pjk;
+  let uangDiterima=null, kembalian=null;
+  if(metodeJual==='Cash'){
+    const d=+document.getElementById('uangDiterima').value||0;
+    if(d>0){
+      if(d<totalAkhir){ toast('Uang diterima kurang dari total'); return; }
+      uangDiterima=d; kembalian=d-totalAkhir;
+    }
+  }
   if(!lampau) for(const i of item){ const p=db.produk.find(x=>x.id===i.produkId); p.stok-=i.qty; }
   const idT=uid();
-  const pjk=(db.setelan.pajak>0)? Math.round(total*db.setelan.pajak/100) : 0;
-  db.transaksi.push({id:idT, tanggal:tglJ, waktu:(lampau? new Date(tglJ+'T12:00:00').getTime() : Date.now()), item, subtotal:total, pajak:pjk, total:total+pjk, modal, metode:metodeJual, pelangganId:pelId, tanpaStok:lampau, catatan:document.getElementById('catatanJual').value.trim()});
+  const trx={id:idT, tanggal:tglJ, waktu:(lampau? new Date(tglJ+'T12:00:00').getTime() : Date.now()), item, subtotal:total, pajak:pjk, total:totalAkhir, modal, metode:metodeJual, pelangganId:pelId, tanpaStok:lampau, catatan:document.getElementById('catatanJual').value.trim(), uangDiterima, kembalian};
+  db.transaksi.push(trx);
   if(metodeJual==='Utang'){
     const pl=db.pelanggan.find(x=>x.id===pelId);
-    if(pl) pl.utang.push({id:uid(), trxId:idT, tanggal:hariIni(), waktu:Date.now(), jumlah:total+pjk, ket:'Kasbon belanja', tipe:'utang'});
+    if(pl) pl.utang.push({id:uid(), trxId:idT, tanggal:hariIni(), waktu:Date.now(), jumlah:totalAkhir, ket:'Kasbon belanja', tipe:'utang'});
   }
-  keranjang={}; document.getElementById('catatanJual').value=''; document.getElementById('pelangganJual').value='';
+  keranjang={}; document.getElementById('catatanJual').value=''; document.getElementById('pelangganJual').value=''; document.getElementById('uangDiterima').value='';
   simpan(); render(); cekTglJual();
   toast(lampau? 'Penjualan '+tglCantik(tglJ)+' tersimpan ✔' : 'Penjualan tersimpan ✔');
+  tampilkanStruk(trx);
 }
 function hapusTransaksi(id){
   const tKonf=db.transaksi.find(x=>x.id===id);
@@ -521,6 +602,59 @@ function hapusTransaksi(id){
   db.pelanggan.forEach(p=>{ p.utang=p.utang.filter(u=>u.trxId!==id); });
   db.transaksi = db.transaksi.filter(x=>x.id!==id);
   simpan(); render(); toast('Transaksi dihapus');
+}
+
+// ===== Struk =====
+function bangunStrukHTML(t){
+  const items=t.item.map(i=>`<div class="struk-item"><span>${esc(i.nama)} ×${i.qty}</span><span>${rp(i.harga*i.qty)}</span></div>`).join('');
+  return `
+    <div class="struk-toko">${esc(db.namaUsaha||'Usaha Kamu')}</div>
+    <div class="struk-meta">${tglCantik(t.tanggal)} · ${jamDari(t.waktu)}</div>
+    <div class="struk-garis"></div>
+    ${items}
+    <div class="struk-garis"></div>
+    <div class="struk-item"><span>Subtotal</span><span>${rp(t.subtotal)}</span></div>
+    ${t.pajak>0?`<div class="struk-item"><span>Pajak</span><span>${rp(t.pajak)}</span></div>`:''}
+    <div class="struk-item struk-total"><span>Total</span><span>${rp(t.total)}</span></div>
+    <div class="struk-item"><span>Bayar</span><span>${esc(t.metode||'Cash')}</span></div>
+    ${t.uangDiterima!=null?`<div class="struk-item"><span>Tunai</span><span>${rp(t.uangDiterima)}</span></div><div class="struk-item"><span>Kembali</span><span>${rp(t.kembalian)}</span></div>`:''}
+    ${t.pelangganId?`<div class="struk-item"><span>Pelanggan</span><span>${esc(namaPel(t.pelangganId))}</span></div>`:''}
+    ${t.catatan?`<div class="struk-meta">Catatan: ${esc(t.catatan)}</div>`:''}
+    <div class="struk-garis"></div>
+    <div class="struk-footer">Terima kasih 🙏</div>`;
+}
+function bangunStrukTeks(t){
+  let s=(db.namaUsaha||'Usaha Kamu').toUpperCase()+'\n'+tglCantik(t.tanggal)+' '+jamDari(t.waktu)+'\n------------------------\n';
+  t.item.forEach(i=>{ s+=i.nama+' x'+i.qty+'  '+rp(i.harga*i.qty)+'\n'; });
+  s+='------------------------\n';
+  s+='Subtotal: '+rp(t.subtotal)+'\n';
+  if(t.pajak>0) s+='Pajak: '+rp(t.pajak)+'\n';
+  s+='Total: '+rp(t.total)+'\n';
+  s+='Bayar: '+(t.metode||'Cash')+'\n';
+  if(t.uangDiterima!=null) s+='Tunai: '+rp(t.uangDiterima)+'\nKembali: '+rp(t.kembalian)+'\n';
+  if(t.pelangganId) s+='Pelanggan: '+namaPel(t.pelangganId)+'\n';
+  if(t.catatan) s+='Catatan: '+t.catatan+'\n';
+  s+='\nTerima kasih 🙏';
+  return s;
+}
+let strukAktif=null;
+function tampilkanStruk(t){
+  strukAktif=t;
+  document.getElementById('strukIsi').innerHTML=bangunStrukHTML(t);
+  document.getElementById('strukModal').classList.add('tampil');
+}
+function bukaStrukId(id){ const t=db.transaksi.find(x=>x.id===id); if(t) tampilkanStruk(t); }
+function tutupStruk(){ document.getElementById('strukModal').classList.remove('tampil'); strukAktif=null; }
+function cetakStruk(){ window.print(); }
+async function bagikanStruk(){
+  if(!strukAktif) return;
+  const teks=bangunStrukTeks(strukAktif);
+  try{
+    if(navigator.share){ await navigator.share({text:teks, title:'Struk '+(db.namaUsaha||'')}); return; }
+  }catch(e){ if(e && e.name==='AbortError') return; }
+  const pel=strukAktif.pelangganId? db.pelanggan.find(x=>x.id===strukAktif.pelangganId):null;
+  const url=(pel&&pel.wa)? waLink(pel.wa)+'?text='+encodeURIComponent(teks) : 'https://wa.me/?text='+encodeURIComponent(teks);
+  window.open(url,'_blank');
 }
 
 // ===== Sub-tab: Produk / Bahan Baku, Pengeluaran / Overhead =====
@@ -882,6 +1016,51 @@ function setPeriode(mode){
   document.getElementById('lapSampai').value=s;
   renderLaporan();
 }
+// ===== Grafik tren (SVG, tanpa library) =====
+function tglSingkat(iso){ const d=new Date(iso+'T00:00'); return d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}); }
+function dataGrafikTren(dari, sampai, trx){
+  const d0=new Date(dari+'T00:00'), d1=new Date(sampai+'T00:00');
+  const totalHari=Math.max(1, Math.round((d1-d0)/86400000)+1);
+  const maxBucket=30;
+  const ukuran=Math.max(1, Math.ceil(totalHari/maxBucket));
+  const buckets=[];
+  for(let i=0;i<totalHari;i+=ukuran){
+    const awal=new Date(d0); awal.setDate(awal.getDate()+i);
+    const akhir=new Date(d0); akhir.setDate(akhir.getDate()+Math.min(i+ukuran-1, totalHari-1));
+    buckets.push({dari:awal.toISOString().slice(0,10), sampai:akhir.toISOString().slice(0,10), omzet:0, laba:0});
+  }
+  trx.forEach(t=>{
+    const b=buckets.find(bk=>t.tanggal>=bk.dari && t.tanggal<=bk.sampai);
+    if(b){ b.omzet+=t.total; b.laba+=t.total-(t.modal||0)-(t.pajak||0); }
+  });
+  return buckets;
+}
+function grafikTrenHTML(buckets){
+  if(buckets.every(b=>b.omzet===0 && b.laba===0)) return '<div class="kosong">Belum ada data di periode ini.</div>';
+  const w=560, h=150, padL=6, padR=6, padT=10, padB=8;
+  const n=buckets.length;
+  const nilai=buckets.flatMap(b=>[b.omzet,b.laba]);
+  const maxVal=Math.max(1, ...nilai);
+  const minVal=Math.min(0, ...nilai);
+  const rentang=(maxVal-minVal)||1;
+  const x=i=> n<=1 ? w/2 : padL + (i*(w-padL-padR)/(n-1));
+  const y=v=> h-padB - ((v-minVal)/rentang)*(h-padT-padB);
+  const titikOmzet=buckets.map((b,i)=>`${x(i)},${y(b.omzet)}`).join(' ');
+  const titikLaba=buckets.map((b,i)=>`${x(i)},${y(b.laba)}`).join(' ');
+  const areaOmzet=`${x(0)},${y(0)} ${titikOmzet} ${x(n-1)},${y(0)}`;
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%; height:auto; display:block" preserveAspectRatio="none">
+      <line x1="${padL}" y1="${y(0)}" x2="${w-padR}" y2="${y(0)}" stroke="#e8ddd0" stroke-width="1"/>
+      <polygon points="${areaOmzet}" fill="#c8935f" opacity="0.18"/>
+      <polyline points="${titikOmzet}" fill="none" stroke="#c8935f" stroke-width="2.5"/>
+      <polyline points="${titikLaba}" fill="none" stroke="#2e7d4f" stroke-width="2.5"/>
+    </svg>
+    <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:2px">
+      <span>${tglSingkat(buckets[0].dari)}</span><span>${tglSingkat(buckets[n-1].sampai)}</span>
+    </div>
+    <div style="display:flex; gap:14px; font-size:11px; margin-top:6px">
+      <span style="color:#c8935f">● Omzet</span><span style="color:#2e7d4f">● Laba kotor</span>
+    </div>`;
+}
 function renderLaporan(){
   const dari=document.getElementById('lapDari').value||hariIni();
   const sampai=document.getElementById('lapSampai').value||hariIni();
@@ -899,6 +1078,8 @@ function renderLaporan(){
   document.getElementById('lapKeluar').textContent=rp(keluar);
   const lb=document.getElementById('lapLabaBersih');
   lb.textContent=rp(labaBersih); lb.className='nilai '+(labaBersih>=0?'hijau':'merah');
+
+  document.getElementById('lapGrafik').innerHTML = grafikTrenHTML(dataGrafikTren(dari, sampai, trx));
 
   const met={};
   trx.forEach(t=>{ const m=t.metode||'Cash'; if(!met[m]) met[m]={total:0,jml:0}; met[m].total+=t.total; met[m].jml++; });
@@ -925,6 +1106,7 @@ function renderLaporan(){
           <div class="nama">${rp(t.total)} <span class="sub">· ${tglCantik(t.tanggal)} ${jamDari(t.waktu)}</span></div>
           <div class="sub">${t.item.map(i=>esc(i.nama)+' ×'+i.qty).join(', ')}</div>
         </div>
+        <button class="btn-kecil btn-abu" onclick="bukaStrukId('${t.id}')">🧾</button>
       </div>`).join('');
 }
 
@@ -933,8 +1115,12 @@ function renderLaporan(){
 // Panduan setupnya ada di file terpisah "panduan-setup-drive-selaris.md".
 const GOOGLE_CLIENT_ID = '66647927671-7ijtns51acln05u1shda81g19utuhpm5.apps.googleusercontent.com';
 let gisToken=null, tokenClient=null;
-function initGoogleAuth(){
-  if(!window.google || !google.accounts || !google.accounts.oauth2){ setTimeout(initGoogleAuth, 500); return; }
+function initGoogleAuth(percobaan){
+  percobaan=percobaan||0;
+  if(!window.google || !google.accounts || !google.accounts.oauth2){
+    if(percobaan<40) setTimeout(()=>initGoogleAuth(percobaan+1), 500); // Google Sign-In perlu koneksi internet; berhenti mencoba kalau offline
+    return;
+  }
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.appdata',
@@ -1069,11 +1255,54 @@ function imporBackup(inp){
   r.readAsText(f); inp.value='';
 }
 
+// ===== Notifikasi & pengingat stok rendah =====
+function cekStokRendah(){
+  const produkHabis = db.produk.filter(p=>p.stok<=0);
+  const bahanRendah = db.bahan.filter(b=>b.jumlah<=b.min);
+  const total = produkHabis.length + bahanRendah.length;
+  const banner = document.getElementById('bannerStok');
+  if(total===0){ banner.style.display='none'; return {total, produkHabis, bahanRendah}; }
+  const bagian=[];
+  if(produkHabis.length) bagian.push(produkHabis.length+' produk habis');
+  if(bahanRendah.length) bagian.push(bahanRendah.length+' bahan hampir habis');
+  banner.textContent='⚠️ '+bagian.join(' · ')+' — ketuk untuk lihat';
+  banner.style.display='block';
+  return {total, produkHabis, bahanRendah};
+}
+function renderNotifStatus(){
+  const el=document.getElementById('notifStatus'); if(!el) return;
+  if(!('Notification' in window)){ el.textContent='Notifikasi tidak didukung di browser ini.'; return; }
+  const p=Notification.permission;
+  el.textContent = p==='granted' ? 'Notifikasi pengingat stok AKTIF ✔' : p==='denied' ? 'Notifikasi diblokir — aktifkan lewat setelan browser.' : 'Notifikasi belum diaktifkan.';
+}
+function mintaIzinNotifikasi(){
+  if(!('Notification' in window)){ toast('Browser ini tidak mendukung notifikasi'); return; }
+  Notification.requestPermission().then(p=>{
+    renderNotifStatus();
+    toast(p==='granted' ? 'Notifikasi diaktifkan ✔' : 'Izin notifikasi ditolak');
+  });
+}
+function cekNotifikasiStok(info){
+  if(!('Notification' in window) || Notification.permission!=='granted' || info.total===0) return;
+  const hari=hariIni();
+  if(db.notifTerakhir===hari) return;
+  db.notifTerakhir=hari; simpan(true);
+  const bagian=[];
+  if(info.produkHabis.length) bagian.push(info.produkHabis.length+' produk habis');
+  if(info.bahanRendah.length) bagian.push(info.bahanRendah.length+' bahan hampir habis');
+  try{ new Notification('Selaris — Stok Perlu Dicek', {body:bagian.join(' · '), icon:'icons/icon-192.png'}); }catch(e){}
+}
+
 // ===== Render utama =====
-function render(){ renderKasir(); renderProduk(); renderBahan(); renderKeluar(); renderOverhead(); renderPelanggan(); renderLaporan(); }
+function render(){
+  const infoStok=cekStokRendah();
+  renderKasir(); renderProduk(); renderBahan(); renderKeluar(); renderOverhead(); renderPelanggan(); renderLaporan();
+  cekNotifikasiStok(infoStok);
+}
 tampilkanNama();
 tampilkanLogo();
 renderCloud();
+renderNotifStatus();
 initGoogleAuth();
 document.getElementById('hdrTgl').textContent = new Date().toLocaleDateString('id-ID',{day:'numeric', month:'long'});
 document.getElementById('klrTgl').value=hariIni();
@@ -1082,7 +1311,8 @@ setPeriode('hari');
 renderKomponenForm();
 render();
 if(!db.namaUsaha){ document.getElementById('onboard').classList.add('tampil'); }
+if('serviceWorker' in navigator){ window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 </script>
 </body>
 </html>
-<!-- Selaris v2.0 (nav 5-menu, mode simpel default, auto-backup Google Drive) -->
+<!-- Selaris v2.1 (struk cetak/bagikan + kembalian, PWA offline, grafik tren laporan, notifikasi stok rendah) -->
