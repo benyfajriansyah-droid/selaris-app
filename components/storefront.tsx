@@ -1,57 +1,40 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, ShoppingBag, Heart, MapPin, Clock3, ChevronRight, Minus, Plus, X, CheckCircle2, Package, Plane, Truck } from "lucide-react";
-import { products, rupiah, Product } from "@/lib/data";
+import { products as previewProducts, rupiah, Product } from "@/lib/data";
 
 type CartItem = Product & { qty: number };
+const emojiFor=(category:string)=>category==="Fashion"?"👟":category==="Beauty"?"🧴":category==="Food"?"🍫":"🎁";
 
 export default function Storefront() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("Semua");
+  const [catalog, setCatalog] = useState<Product[]>(previewProducts);
+  const [dbReady, setDbReady] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [openCart, setOpenCart] = useState(false);
   const [toast, setToast] = useState("");
   const cats = ["Semua", "Fashion", "Beauty", "Food", "Lifestyle"];
-  const filtered = useMemo(() => products.filter(p => (category === "Semua" || p.category === category) && p.name.toLowerCase().includes(query.toLowerCase())), [query, category]);
+
+  useEffect(()=>{(async()=>{try{const r=await fetch('/api/products',{cache:'no-store'});const rows=await r.json();if(r.ok&&Array.isArray(rows)&&rows.length){const mapped:Product[]=rows.map((p:any)=>({id:String(p.id),name:String(p.name),country:String(p.country||'Jastip'),category:String(p.category||'Lifestyle'),price:Number(p.source_price)*Number(p.exchange_rate||1),fee:Number(p.jastip_fee||0),stock:Number(p.stock||0),deadline:p.po_deadline?new Date(p.po_deadline).toLocaleDateString('id-ID',{day:'numeric',month:'short'}):'Open PO',image:emojiFor(String(p.category||''))}));setCatalog(mapped);setDbReady(true)}}catch{setDbReady(false)}})()},[]);
+
+  const filtered = useMemo(() => catalog.filter(p => (category === "Semua" || p.category === category) && p.name.toLowerCase().includes(query.toLowerCase())), [query, category, catalog]);
   const itemCount = cart.reduce((a,b) => a + b.qty, 0);
   const subtotal = cart.reduce((a,b) => a + (b.price + b.fee) * b.qty, 0);
   const handling = cart.length ? 5000 : 0;
-
-  const add = (p: Product) => {
-    setCart(c => c.some(i => i.id === p.id) ? c.map(i => i.id === p.id ? {...i, qty: Math.min(i.qty + 1, p.stock)} : i) : [...c, {...p, qty: 1}]);
-    setToast(`${p.name} masuk keranjang`); setTimeout(() => setToast(""), 1800);
-  };
-  const qty = (id:number, delta:number) => setCart(c => c.map(i => i.id === id ? {...i, qty: i.qty + delta} : i).filter(i => i.qty > 0));
+  const flash=(m:string)=>{setToast(m);setTimeout(()=>setToast(""),2200)};
+  const add = (p: Product) => { setCart(c => c.some(i => i.id === p.id) ? c.map(i => i.id === p.id ? {...i, qty: Math.min(i.qty + 1, p.stock)} : i) : [...c, {...p, qty: 1}]); flash(`${p.name} masuk keranjang`); };
+  const qty = (id:string|number, delta:number) => setCart(c => c.map(i => i.id === id ? {...i, qty: i.qty + delta} : i).filter(i => i.qty > 0));
+  const checkout=()=>{if(!dbReady){flash('Mode preview: checkout aktif otomatis setelah Neon tersambung.');return} localStorage.setItem('jp_cart',JSON.stringify(cart));window.location.href='/checkout'};
 
   return <main>
     {toast && <div className="toast"><CheckCircle2 size={18}/>{toast}</div>}
-    <header className="topbar shell">
-      <a className="brand" href="#"><span>JP</span>JastipPro</a>
-      <nav className="desktop-nav"><a href="#produk">Produk</a><a href="#cara">Cara Kerja</a><a href="#tracking">Tracking</a></nav>
-      <div className="header-actions"><button className="icon-btn"><Heart size={19}/></button><button className="cart-btn" onClick={() => setOpenCart(true)}><ShoppingBag size={19}/><span>Keranjang</span>{itemCount > 0 && <b>{itemCount}</b>}</button></div>
-    </header>
-
-    <section className="hero shell">
-      <div className="hero-copy"><div className="eyebrow">JASTIP JEPANG & KOREA • OPEN PO</div><h1>Titip barang incaran.<br/><em>Kami yang urus sisanya.</em></h1><p>Harga transparan, fee jelas, dan status pesanan bisa dipantau dari checkout sampai barang tiba di rumah.</p><div className="hero-actions"><a className="primary" href="#produk">Lihat Open PO <ChevronRight size={18}/></a><a className="secondary" href="#cara">Cara kerja</a></div><div className="trust-row"><span>✓ Harga transparan</span><span>✓ Update real-time</span><span>✓ Pembayaran aman</span></div></div>
-      <div className="trip-card"><div className="trip-head"><div><small>NEXT TRIP</small><h3>Tokyo, Jepang</h3></div><div className="flag">🇯🇵</div></div><div className="route"><div><Plane size={20}/><span>Jakarta</span></div><div className="line"><i></i></div><div><MapPin size={20}/><span>Tokyo</span></div></div><div className="deadline"><Clock3 size={18}/><div><small>PO ditutup</small><strong>4 September 2026</strong></div></div><div className="quota"><div><span>Kuota terisi</span><b>68%</b></div><div className="bar"><i style={{width:"68%"}}/></div></div></div>
-    </section>
-
+    <header className="topbar shell"><a className="brand" href="#"><span>JP</span>JastipPro</a><nav className="desktop-nav"><a href="#produk">Produk</a><a href="#cara">Cara Kerja</a><a href="#tracking">Tracking</a></nav><div className="header-actions"><button className="icon-btn" aria-label="Wishlist"><Heart size={19}/></button><button className="cart-btn" onClick={() => setOpenCart(true)}><ShoppingBag size={19}/><span>Keranjang</span>{itemCount > 0 && <b>{itemCount}</b>}</button></div></header>
+    <section className="hero shell"><div className="hero-copy"><div className="eyebrow">JASTIP JEPANG & KOREA • OPEN PO</div><h1>Titip barang incaran.<br/><em>Kami yang urus sisanya.</em></h1><p>Harga transparan, fee jelas, dan status pesanan bisa dipantau dari checkout sampai barang tiba di rumah.</p><div className="hero-actions"><a className="primary" href="#produk">Lihat Open PO <ChevronRight size={18}/></a><a className="secondary" href="#cara">Cara kerja</a></div><div className="trust-row"><span>✓ Harga transparan</span><span>✓ Update real-time</span><span>✓ Pembayaran aman</span></div></div><div className="trip-card"><div className="trip-head"><div><small>NEXT TRIP</small><h3>Tokyo, Jepang</h3></div><div className="flag">🇯🇵</div></div><div className="route"><div><Plane size={20}/><span>Jakarta</span></div><div className="line"><i/></div><div><MapPin size={20}/><span>Tokyo</span></div></div><div className="deadline"><Clock3 size={18}/><div><small>PO ditutup</small><strong>4 September 2026</strong></div></div><div className="quota"><div><span>Kuota terisi</span><b>68%</b></div><div className="bar"><i style={{width:"68%"}}/></div></div></div></section>
     <section className="features shell" id="cara"><div><Package/><span><b>Produk terkurasi</b><small>Beli dari toko & seller terpercaya</small></span></div><div><Plane/><span><b>Trip terjadwal</b><small>Deadline dan estimasi tiba jelas</small></span></div><div><Truck/><span><b>Tracking mudah</b><small>Pantau progres tanpa chat admin</small></span></div></section>
-
-    <section className="catalog shell" id="produk"><div className="section-head"><div><span className="eyebrow">OPEN PRE-ORDER</span><h2>Lagi bisa dititip nih.</h2></div><a href="#">Lihat semua <ChevronRight size={17}/></a></div>
-      <div className="toolbar"><div className="search"><Search size={19}/><input placeholder="Cari barang incaran..." value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="chips">{cats.map(c=><button key={c} className={category===c?"active":""} onClick={()=>setCategory(c)}>{c}</button>)}</div></div>
-      <div className="grid">{filtered.map(p=><article className="product" key={p.id}><div className="product-img"><span>{p.image}</span>{p.badge && <b>{p.badge}</b>}<button><Heart size={18}/></button></div><div className="product-body"><small>{p.country} • {p.category}</small><h3>{p.name}</h3><div className="price"><strong>{rupiah(p.price + p.fee)}</strong><span>all-in*</span></div><div className="meta"><span><Clock3 size={14}/> PO {p.deadline}</span><span>Sisa {p.stock}</span></div><button className="add" onClick={()=>add(p)}>Tambah ke keranjang</button><p className="breakdown">Harga {rupiah(p.price)} + fee {rupiah(p.fee)}</p></div></article>)}</div>
-    </section>
-
-    <section className="tracking-section" id="tracking"><div className="shell tracking-inner"><div><span className="eyebrow light">TRACKING PESANAN</span><h2>Nggak perlu nanya<br/>“barang gue udah mana?”</h2><p>Setiap perubahan status otomatis masuk ke riwayat pesanan kamu.</p></div><div className="track-card"><div className="track-top"><span>Order #JP2608129</span><b>Dalam perjalanan 🇯🇵 → 🇮🇩</b></div>{[
-          { Icon: CheckCircle2, label: "Order dikonfirmasi", time: "28 Agu • 20:41" },
-          { Icon: ShoppingBag, label: "Barang sudah dibeli", time: "29 Agu • 13:10" },
-          { Icon: Plane, label: "Dalam perjalanan ke Indonesia", time: "30 Agu • 07:25" },
-          { Icon: Truck, label: "Pengiriman domestik", time: "Menunggu" }
-        ].map(({Icon,label,time},i)=><div className={`track-step ${i<3?"done":""}`} key={label}><span className="track-icon"><Icon size={17}/></span><div><b>{label}</b><small>{time}</small></div></div>)}</div></div></section>
-
+    <section className="catalog shell" id="produk"><div className="section-head"><div><span className="eyebrow">{dbReady?'LIVE CATALOG':'PREVIEW CATALOG'}</span><h2>Lagi bisa dititip nih.</h2></div><a href="#produk">Lihat semua <ChevronRight size={17}/></a></div><div className="toolbar"><div className="search"><Search size={19}/><input placeholder="Cari barang incaran..." value={query} onChange={e=>setQuery(e.target.value)}/></div><div className="chips">{cats.map(c=><button key={c} className={category===c?"active":""} onClick={()=>setCategory(c)}>{c}</button>)}</div></div><div className="grid">{filtered.map(p=><article className="product" key={p.id}><div className="product-img"><span>{p.image}</span>{p.badge && <b>{p.badge}</b>}<button aria-label="Wishlist"><Heart size={18}/></button></div><div className="product-body"><small>{p.country} • {p.category}</small><h3>{p.name}</h3><div className="price"><strong>{rupiah(p.price + p.fee)}</strong><span>all-in*</span></div><div className="meta"><span><Clock3 size={14}/> PO {p.deadline}</span><span>Sisa {p.stock}</span></div><button className="add" onClick={()=>add(p)}>Tambah ke keranjang</button><p className="breakdown">Harga {rupiah(p.price)} + fee {rupiah(p.fee)}</p></div></article>)}</div></section>
+    <section className="tracking-section" id="tracking"><div className="shell tracking-inner"><div><span className="eyebrow light">TRACKING PESANAN</span><h2>Nggak perlu nanya<br/>“barang gue udah mana?”</h2><p>Setiap perubahan status otomatis masuk ke riwayat pesanan kamu.</p></div><div className="track-card"><div className="track-top"><span>Order #JP2608129</span><b>Dalam perjalanan 🇯🇵 → 🇮🇩</b></div>{[{Icon:CheckCircle2,label:"Order dikonfirmasi",time:"28 Agu • 20:41"},{Icon:ShoppingBag,label:"Barang sudah dibeli",time:"29 Agu • 13:10"},{Icon:Plane,label:"Dalam perjalanan ke Indonesia",time:"30 Agu • 07:25"},{Icon:Truck,label:"Pengiriman domestik",time:"Menunggu"}].map(({Icon,label,time},i)=><div className={`track-step ${i<3?"done":""}`} key={label}><span className="track-icon"><Icon size={17}/></span><div><b>{label}</b><small>{time}</small></div></div>)}</div></div></section>
     <footer className="shell"><div className="brand"><span>JP</span>JastipPro</div><p>Belanja lintas negara, tanpa ribet.</p><a href="/admin">Admin Dashboard →</a></footer>
-
-    {openCart && <div className="drawer-wrap" onMouseDown={()=>setOpenCart(false)}><aside className="drawer" onMouseDown={e=>e.stopPropagation()}><div className="drawer-head"><div><small>KERANJANG</small><h2>{itemCount} barang</h2></div><button onClick={()=>setOpenCart(false)}><X/></button></div><div className="cart-list">{cart.length===0?<div className="empty"><ShoppingBag size={40}/><h3>Keranjang masih kosong</h3><p>Pilih produk open PO yang mau kamu titip.</p></div>:cart.map(i=><div className="cart-item" key={i.id}><div className="mini-img">{i.image}</div><div><b>{i.name}</b><small>{rupiah(i.price+i.fee)} / item</small><div className="counter"><button onClick={()=>qty(i.id,-1)}><Minus size={14}/></button><span>{i.qty}</span><button onClick={()=>qty(i.id,1)}><Plus size={14}/></button></div></div><strong>{rupiah((i.price+i.fee)*i.qty)}</strong></div>)}</div>{cart.length>0&&<div className="checkout"><div><span>Subtotal</span><b>{rupiah(subtotal)}</b></div><div><span>Handling</span><b>{rupiah(handling)}</b></div><div className="total"><span>Total estimasi</span><b>{rupiah(subtotal+handling)}</b></div><button onClick={()=>{localStorage.setItem("jp_cart",JSON.stringify(cart)); window.location.href="/checkout"}}>Lanjut checkout <ChevronRight size={18}/></button><p>Ongkir domestik dihitung setelah alamat dipilih.</p></div>}</aside></div>}
+    {openCart && <div className="drawer-wrap" onMouseDown={()=>setOpenCart(false)}><aside className="drawer" onMouseDown={e=>e.stopPropagation()}><div className="drawer-head"><div><small>KERANJANG</small><h2>{itemCount} barang</h2></div><button onClick={()=>setOpenCart(false)} aria-label="Tutup"><X/></button></div><div className="cart-list">{cart.length===0?<div className="empty"><ShoppingBag size={40}/><h3>Keranjang masih kosong</h3><p>Pilih produk open PO yang mau kamu titip.</p></div>:cart.map(i=><div className="cart-item" key={i.id}><div className="mini-img">{i.image}</div><div><b>{i.name}</b><small>{rupiah(i.price+i.fee)} / item</small><div className="counter"><button onClick={()=>qty(i.id,-1)}><Minus size={14}/></button><span>{i.qty}</span><button onClick={()=>qty(i.id,1)}><Plus size={14}/></button></div></div><strong>{rupiah((i.price+i.fee)*i.qty)}</strong></div>)}</div>{cart.length>0&&<div className="checkout"><div><span>Subtotal</span><b>{rupiah(subtotal)}</b></div><div><span>Handling</span><b>{rupiah(handling)}</b></div><div className="total"><span>Total estimasi</span><b>{rupiah(subtotal+handling)}</b></div><button onClick={checkout}>{dbReady?'Lanjut checkout':'Preview — checkout belum aktif'} <ChevronRight size={18}/></button><p>{dbReady?'Ongkir domestik dihitung setelah alamat dipilih.':'Katalog preview tetap bisa diuji tanpa membuat order palsu.'}</p></div>}</aside></div>}
   </main>
 }
